@@ -381,7 +381,6 @@
             font-size: 12px;
             white-space: nowrap;
         }
-        /* 剪裁框的4个角触控区域（不可见但可触摸） */
         .crop-handle {
             position: absolute;
             width: 30px;
@@ -651,9 +650,7 @@
     // ============================================================
     // 自动适配环境（本地 vs 线上）
     // ============================================================
-    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://127.0.0.1:8000'
-        : 'https://web-production-e41b7.up.railway.app';
+    const API_BASE = 'https://web-production-e41b7.up.railway.app'; // 硬编码线上地址
 
     // ============================================================
     // 1. 生词本
@@ -1461,7 +1458,7 @@
     })();
 
     // ============================================================
-    // 7. 渲染处理后的数据
+    // 7. 渲染处理后的数据（已删除底部链接文字）
     // ============================================================
     function renderProcessedData(data) {
         const container = document.getElementById('sentencesContainer');
@@ -1482,11 +1479,13 @@
             transStates[idx] = false;
             enStates[idx] = true;
 
+            // ⭐ 卡片内容：保留音频播放器，删除底部链接文字
             card.innerHTML = `
                 <div class="card-content">
                     <div class="en">${idx+1}. ${speakerTag} <span class="en-text">${enHtml}</span></div>
                     <div class="zh">📖 ${s.translation}</div>
                     <div class="controls">
+                        <audio controls class="audio-player" src="${s.audio_url}" preload="none" style="flex:1; min-width:150px;"></audio>
                         <button class="loop-btn" data-idx="${idx}">🔁 循环跟读</button>
                         <button class="trans-toggle" data-idx="${idx}">📖 显示翻译</button>
                         <button class="en-toggle" data-idx="${idx}">🙈 隐藏英文</button>
@@ -1498,6 +1497,7 @@
                         <div class="feedback" id="feedback-${idx}">等待录音...</div>
                         <div class="wrong-words" id="wrong-words-${idx}"></div>
                     </div>
+                    <!-- 已删除底部链接 <span style="font-size:12px;color:#888;">${s.audio_url}</span> -->
                 </div>
             `;
             container.appendChild(card);
