@@ -73,10 +73,7 @@
         button:disabled { opacity: 0.6; }
         #loading { margin-top: 10px; color: #4a5568; }
 
-        /* 对话列表 - 隐藏标题，只保留列表 */
-        .dialogue-list h3 {
-            display: none;
-        }
+        .dialogue-list h3 { display: none; }
         .dialogue-list {
             background: rgba(255,255,255,0.85);
             border-radius: 16px;
@@ -358,10 +355,50 @@
             color: #a0aec0;
         }
         .modal-card .close-btn:hover { color: #2d3748; }
-        .modal-card h3 { margin-top: 0; }
-        .modal-card label { display: block; margin: 12px 0 4px; font-weight: 600; }
-        .modal-card input[type="file"] { display: block; margin: 6px 0; width: 100%; }
-        .modal-card input[type="range"] { width: 100%; margin: 8px 0; }
+        .modal-card .word-title { font-size: 28px; font-weight: 700; }
+        .modal-card .phonetic { color: #4a5568; font-size: 16px; margin-bottom: 8px; }
+        .modal-card .chinese-def {
+            color: #2b6cb0;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #ebf8ff;
+            border-radius: 8px;
+            border-left: 4px solid #2b6cb0;
+        }
+        .modal-card .meaning {
+            margin: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+        .modal-card .meaning .part-of-speech { font-weight: 600; color: #2b6cb0; }
+        .modal-card .meaning .definition { margin: 4px 0 6px 16px; }
+        .modal-card .meaning .example { font-style: italic; color: #4a5568; margin-left: 16px; font-size: 14px; }
+        .modal-card .no-def { color: #e53e3e; text-align: center; padding: 20px 0; }
+        .modal-actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+        }
+        .modal-actions .add-vocab-btn {
+            background: #805ad5;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 15px;
+            cursor: pointer;
+            border: none !important;
+        }
+        .modal-actions .add-vocab-btn:hover { background: #6b46c1; }
+        .modal-actions .add-vocab-btn.added {
+            background: #48bb78;
+            cursor: default;
+        }
 
         .crop-container {
             position: relative;
@@ -552,14 +589,12 @@
         </div>
     </div>
 
-    <!-- 上传区域（背景透明） -->
     <div class="upload-area">
         <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.mov,.avi,.mkv">
         <button id="uploadBtn">开始处理</button>
         <div id="loading">等待上传...</div>
     </div>
 
-    <!-- 对话列表 -->
     <div class="dialogue-list">
         <div id="dialogueListContainer">
             <div class="dialogue-empty">还没有保存的对话，上传后自动保存</div>
@@ -650,6 +685,7 @@
             <button class="close-btn" id="modalCloseBtn">&times;</button>
             <div class="word-title" id="modalWord">word</div>
             <div class="phonetic" id="modalPhonetic">/ˈwɜːrd/</div>
+            <div class="chinese-def" id="modalChinese">中文释义: 加载中...</div>
             <div id="modalMeanings"></div>
             <div class="modal-actions">
                 <button class="add-vocab-btn" id="addVocabBtn">加入生词本</button>
@@ -735,7 +771,7 @@
     }
 
     // ============================================================
-    // 2. 词典
+    // 2. 词典（增加中文翻译）
     // ============================================================
     const speakerColors = { 'A': '#FF6B6B', 'B': '#4ECDC4', 'C': '#FFE66D', 'D': '#A8E6CF', 'E': '#FF8A5C', 'F': '#6C5B7B' };
     function getSpeakerColor(s) { return speakerColors[s] || '#2b6cb0'; }
@@ -757,20 +793,47 @@
         } catch { return null; }
     }
 
+    // 翻译单词为中文（复用翻译函数）
+    async function translateWord(word) {
+        if (!word) return '';
+        try {
+            // 使用已有的翻译函数（deep_translator）
+            const response = await fetch(`${API_BASE}/translate_word?q=${encodeURIComponent(word)}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.translation || word;
+            }
+        } catch (e) {}
+        // 如果后端没有翻译接口，调用免费API
+        try {
+            const resp = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`);
+            const data = await resp.json();
+            if (data && data[0] && data[0][0]) {
+                return data[0][0][0];
+            }
+        } catch (e) {}
+        return word;
+    }
+
     function showModal(word, data) {
         const overlay = document.getElementById('modalOverlay');
         document.getElementById('modalWord').textContent = word;
         const phoneticEl = document.getElementById('modalPhonetic');
         const meaningsEl = document.getElementById('modalMeanings');
+        const chineseEl = document.getElementById('modalChinese');
         const addBtn = document.getElementById('addVocabBtn');
         addBtn.textContent = '加入生词本';
         addBtn.classList.remove('added');
         meaningsEl.innerHTML = '';
         let phoneticText = '', meaningText = '', exampleText = '';
 
+        // 先显示加载中
+        chineseEl.textContent = '中文释义: 加载中...';
+
         if (!data || !data.length) {
             phoneticEl.textContent = '';
             meaningsEl.innerHTML = `<div class="no-def">😕 未找到 “${word}” 的释义。</div>`;
+            chineseEl.textContent = '中文释义: 未找到';
             currentWordData = { word, phonetic: '', meaning: '无释义', example: '' };
             overlay.classList.add('active');
             return;
@@ -785,6 +848,7 @@
         const meanings = entry.meanings || [];
         if (!meanings.length) {
             meaningsEl.innerHTML = `<div class="no-def">暂无释义。</div>`;
+            chineseEl.textContent = '中文释义: 暂无';
             currentWordData = { word, phonetic: phoneticText, meaning: '暂无释义', example: '' };
         } else {
             let firstDef = true;
@@ -810,6 +874,12 @@
             });
             currentWordData = { word, phonetic: phoneticText, meaning: meaningText || '已收录', example: exampleText };
         }
+
+        // 异步获取中文翻译
+        translateWord(word).then(zh => {
+            chineseEl.textContent = `中文释义: ${zh}`;
+        });
+
         overlay.classList.add('active');
     }
 
@@ -824,6 +894,7 @@
         document.getElementById('modalWord').textContent = cleanWord;
         document.getElementById('modalPhonetic').textContent = '查询中...';
         document.getElementById('modalMeanings').innerHTML = '';
+        document.getElementById('modalChinese').textContent = '中文释义: 加载中...';
         document.getElementById('modalOverlay').classList.add('active');
 
         const data = await fetchDictionary(cleanWord);
@@ -1114,17 +1185,15 @@
     // ========== 裁剪交互（使用指针事件） ==========
     function initCropEvents() {
         const container = document.getElementById('cropContainer');
-        // 克隆节点以移除旧监听
         const newContainer = container.cloneNode(true);
         container.parentNode.replaceChild(newContainer, container);
         const cropContainer = document.getElementById('cropContainer');
 
         let isDragging = false;
-        let dragType = ''; // 'move', 'resize_br', 'resize_tl'
+        let dragType = '';
         let startX = 0, startY = 0;
         let startData = null;
 
-        // 指针按下
         cropContainer.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             if (!cropData) return;
@@ -1137,7 +1206,6 @@
             const { x, y, width, height } = cropData;
             const threshold = 25;
 
-            // 检测点击区域
             if (Math.abs(mx - x) < threshold && Math.abs(my - y) < threshold) {
                 dragType = 'resize_tl';
             } else if (Math.abs(mx - (x + width)) < threshold && Math.abs(my - (y + height)) < threshold) {
@@ -1155,7 +1223,6 @@
             this.setPointerCapture(e.pointerId);
         });
 
-        // 指针移动
         cropContainer.addEventListener('pointermove', function(e) {
             if (!isDragging || !cropData || !startData) return;
             const rect = this.getBoundingClientRect();
@@ -1202,7 +1269,6 @@
             }
         });
 
-        // 指针释放
         cropContainer.addEventListener('pointerup', function(e) {
             if (isDragging) {
                 isDragging = false;
@@ -1391,7 +1457,7 @@
     })();
 
     // ============================================================
-    // 7. 渲染数据
+    // 7. 渲染数据（录音功能优化）
     // ============================================================
     function renderProcessedData(data) {
         const container = document.getElementById('sentencesContainer');
@@ -1509,42 +1575,65 @@
                 }
             });
 
-            // 录音
+            // ---------- 录音功能（优化） ----------
             const recordBtn = card.querySelector('.record-btn');
             let recognition = null;
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'en-US';
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.maxAlternatives = 1;
-            } else {
+            let isRecording = false;
+
+            // 检测浏览器是否支持
+            const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            if (!isSupported) {
                 recordBtn.disabled = true;
-                recordBtn.title = '浏览器不支持语音识别，请使用 Chrome';
+                recordBtn.title = '当前浏览器不支持语音识别，请使用 Chrome 或 Edge';
+                recordBtn.textContent = '不支持';
             }
 
-            let isRecording = false;
-            recordBtn.addEventListener('click', function(e) {
+            // 获取用户媒体权限
+            async function requestMicPermission() {
+                try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                    return true;
+                } catch (e) {
+                    showToast('❌ 无法访问麦克风，请在浏览器设置中允许权限');
+                    return false;
+                }
+            }
+
+            recordBtn.addEventListener('click', async function(e) {
                 e.stopPropagation();
-                if (!recognition) {
-                    showToast('浏览器不支持语音识别，请使用 Chrome');
+                if (!isSupported) {
+                    showToast('⚠️ 当前浏览器不支持语音识别');
                     return;
                 }
+
+                // 如果正在录音，停止
                 if (isRecording) {
-                    recognition.stop();
+                    if (recognition) recognition.stop();
                     recordBtn.textContent = '录音';
                     recordBtn.classList.remove('recording');
                     isRecording = false;
                     return;
                 }
 
+                // 请求麦克风权限
+                const hasPermission = await requestMicPermission();
+                if (!hasPermission) return;
+
+                // 创建语音识别对象
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
+
+                // 开始录音
                 try {
                     recognition.start();
                     isRecording = true;
                     recordBtn.textContent = '停止录音';
                     recordBtn.classList.add('recording');
-                    showToast('录音中... 请大声朗读原文');
+                    showToast('🎤 录音中，请朗读原文...');
 
                     recognition.onresult = function(event) {
                         let finalText = '';
@@ -1554,30 +1643,41 @@
                             }
                         }
                         if (finalText) {
+                            // 实时评分
                             const originalText = s.text;
                             const score = evaluateSpeech(originalText, finalText);
                             displayScore(idx, score);
                         }
                     };
+
                     recognition.onerror = function(event) {
                         console.error('识别错误:', event.error);
+                        let msg = '语音识别错误: ' + event.error;
                         if (event.error === 'not-allowed') {
-                            showToast('请允许使用麦克风权限');
-                        } else {
-                            showToast('语音识别错误: ' + event.error);
+                            msg = '⚠️ 请允许使用麦克风权限';
+                        } else if (event.error === 'no-speech') {
+                            msg = '🔇 未检测到语音，请大声朗读';
                         }
+                        showToast(msg);
                         recordBtn.textContent = '录音';
                         recordBtn.classList.remove('recording');
                         isRecording = false;
                     };
+
                     recognition.onend = function() {
-                        recordBtn.textContent = '录音';
-                        recordBtn.classList.remove('recording');
-                        isRecording = false;
-                        showToast('录音结束');
+                        // 如果用户没有手动停止，自动结束
+                        if (isRecording) {
+                            recordBtn.textContent = '录音';
+                            recordBtn.classList.remove('recording');
+                            isRecording = false;
+                            showToast('录音结束');
+                        }
                     };
                 } catch (err) {
-                    showToast('录音启动失败: ' + err.message);
+                    showToast('❌ 录音启动失败: ' + err.message);
+                    recordBtn.textContent = '录音';
+                    recordBtn.classList.remove('recording');
+                    isRecording = false;
                 }
             });
         });
