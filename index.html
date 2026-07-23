@@ -547,7 +547,6 @@
     <div class="toast" id="toast"></div>
 
     <div class="header-bar">
-        <!-- 标题改为“今天学习了吗” -->
         <h1 style="margin:0;">📖 今天学习了吗</h1>
         <div style="display:flex; gap:10px;">
             <button class="bg-btn" id="globalBgBtn">🌐 设置背景</button>
@@ -1105,7 +1104,7 @@
                     height: boxH
                 };
                 updateCropOverlay();
-                initCropTouchEvents();
+                initCropEvents();
             };
             if (document.getElementById('cropImage').complete) {
                 document.getElementById('cropImage').onload();
@@ -1114,162 +1113,89 @@
         reader.readAsDataURL(file);
     });
 
-    function initCropTouchEvents() {
+    // ========== 裁剪交互（使用指针事件） ==========
+    function initCropEvents() {
         const container = document.getElementById('cropContainer');
+        // 克隆节点以移除旧监听
         const newContainer = container.cloneNode(true);
         container.parentNode.replaceChild(newContainer, container);
-        const newCropContainer = document.getElementById('cropContainer');
-        
-        newCropContainer.addEventListener('touchstart', function(e) {
+        const cropContainer = document.getElementById('cropContainer');
+
+        let isDragging = false;
+        let dragType = ''; // 'move', 'resize_br', 'resize_tl'
+        let startX = 0, startY = 0;
+        let startData = null;
+
+        // 指针按下
+        cropContainer.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             if (!cropData) return;
-            const touch = e.touches[0];
             const rect = this.getBoundingClientRect();
             const scaleX = cropData.displayWidth / rect.width;
             const scaleY = cropData.displayHeight / rect.height;
-            const mx = (touch.clientX - rect.left) * scaleX;
-            const my = (touch.clientY - rect.top) * scaleY;
-            
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
             const { x, y, width, height } = cropData;
             const threshold = 25;
-            
+
+            // 检测点击区域
             if (Math.abs(mx - x) < threshold && Math.abs(my - y) < threshold) {
-                touchDragType = 'resize_tl';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
+                dragType = 'resize_tl';
+            } else if (Math.abs(mx - (x + width)) < threshold && Math.abs(my - (y + height)) < threshold) {
+                dragType = 'resize_br';
+            } else if (mx >= x && mx <= x + width && my >= y && my <= y + height) {
+                dragType = 'move';
+            } else {
                 return;
             }
-            if (Math.abs(mx - (x+width)) < threshold && Math.abs(my - (y+height)) < threshold) {
-                touchDragType = 'resize_br';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
-                return;
-            }
-            if (mx >= x && mx <= x+width && my >= y && my <= y+height) {
-                touchDragType = 'move';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
-            }
-        }, { passive: false });
 
-        newCropContainer.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-            if (!touchDragType || !cropData || !touchStartData) return;
-            const touch = e.touches[0];
-            const rect = this.getBoundingClientRect();
-            const scaleX = cropData.displayWidth / rect.width;
-            const scaleY = cropData.displayHeight / rect.height;
-            const mx = (touch.clientX - rect.left) * scaleX;
-            const my = (touch.clientY - rect.top) * scaleY;
-
-            if (touchDragType === 'move') {
-                let dx = mx - touchStartX;
-                let dy = my - touchStartY;
-                let newX = touchStartData.x + dx;
-                let newY = touchStartData.y + dy;
-                newX = Math.max(0, Math.min(cropData.displayWidth - cropData.width, newX));
-                newY = Math.max(0, Math.min(cropData.displayHeight - cropData.height, newY));
-                cropData.x = newX;
-                cropData.y = newY;
-                updateCropOverlay();
-            } else if (touchDragType === 'resize_br') {
-                let newW = touchStartData.width + (mx - touchStartX);
-                let newH = touchStartData.height + (my - touchStartY);
-                newW = Math.max(50, newW);
-                newH = Math.max(50, newH);
-                newW = Math.min(newW, cropData.displayWidth - cropData.x);
-                newH = Math.min(newH, cropData.displayHeight - cropData.y);
-                cropData.width = newW;
-                cropData.height = newH;
-                updateCropOverlay();
-            } else if (touchDragType === 'resize_tl') {
-                let newX = touchStartData.x + (mx - touchStartX);
-                let newY = touchStartData.y + (my - touchStartY);
-                let newW = touchStartData.width - (mx - touchStartX);
-                let newH = touchStartData.height - (my - touchStartY);
-                newX = Math.max(0, Math.min(newX, cropData.displayWidth - 50));
-                newY = Math.max(0, Math.min(newY, cropData.displayHeight - 50));
-                newW = Math.max(50, Math.min(newW, cropData.displayWidth - newX));
-                newH = Math.max(50, Math.min(newH, cropData.displayHeight - newY));
-                cropData.x = newX;
-                cropData.y = newY;
-                cropData.width = newW;
-                cropData.height = newH;
-                updateCropOverlay();
-            }
-        }, { passive: false });
-
-        newCropContainer.addEventListener('touchend', function(e) {
-            touchDragType = '';
-            touchStartData = null;
+            isDragging = true;
+            startX = mx;
+            startY = my;
+            startData = { ...cropData };
+            this.setPointerCapture(e.pointerId);
         });
 
-        newCropContainer.addEventListener('mousedown', function(e) {
-            if (!cropData) return;
+        // 指针移动
+        cropContainer.addEventListener('pointermove', function(e) {
+            if (!isDragging || !cropData || !startData) return;
             const rect = this.getBoundingClientRect();
             const scaleX = cropData.displayWidth / rect.width;
             const scaleY = cropData.displayHeight / rect.height;
             const mx = (e.clientX - rect.left) * scaleX;
             const my = (e.clientY - rect.top) * scaleY;
-            const { x, y, width, height } = cropData;
-            const threshold = 15;
-            
-            if (Math.abs(mx - x) < threshold && Math.abs(my - y) < threshold) {
-                touchDragType = 'resize_tl';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
-                return;
-            }
-            if (Math.abs(mx - (x+width)) < threshold && Math.abs(my - (y+height)) < threshold) {
-                touchDragType = 'resize_br';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
-                return;
-            }
-            if (mx >= x && mx <= x+width && my >= y && my <= y+height) {
-                touchDragType = 'move';
-                touchStartX = mx; touchStartY = my;
-                touchStartData = { ...cropData };
-            }
-        });
 
-        document.addEventListener('mousemove', function(e) {
-            if (!touchDragType || !cropData || !touchStartData) return;
-            const rect = document.getElementById('cropContainer').getBoundingClientRect();
-            const scaleX = cropData.displayWidth / rect.width;
-            const scaleY = cropData.displayHeight / rect.height;
-            const mx = (e.clientX - rect.left) * scaleX;
-            const my = (e.clientY - rect.top) * scaleY;
+            const deltaX = mx - startX;
+            const deltaY = my - startY;
 
-            if (touchDragType === 'move') {
-                let dx = mx - touchStartX;
-                let dy = my - touchStartY;
-                let newX = touchStartData.x + dx;
-                let newY = touchStartData.y + dy;
+            if (dragType === 'move') {
+                let newX = startData.x + deltaX;
+                let newY = startData.y + deltaY;
                 newX = Math.max(0, Math.min(cropData.displayWidth - cropData.width, newX));
                 newY = Math.max(0, Math.min(cropData.displayHeight - cropData.height, newY));
                 cropData.x = newX;
                 cropData.y = newY;
                 updateCropOverlay();
-            } else if (touchDragType === 'resize_br') {
-                let newW = touchStartData.width + (mx - touchStartX);
-                let newH = touchStartData.height + (my - touchStartY);
-                newW = Math.max(50, newW);
-                newH = Math.max(50, newH);
+            } else if (dragType === 'resize_br') {
+                let newW = startData.width + deltaX;
+                let newH = startData.height + deltaY;
+                newW = Math.max(30, newW);
+                newH = Math.max(30, newH);
                 newW = Math.min(newW, cropData.displayWidth - cropData.x);
                 newH = Math.min(newH, cropData.displayHeight - cropData.y);
                 cropData.width = newW;
                 cropData.height = newH;
                 updateCropOverlay();
-            } else if (touchDragType === 'resize_tl') {
-                let newX = touchStartData.x + (mx - touchStartX);
-                let newY = touchStartData.y + (my - touchStartY);
-                let newW = touchStartData.width - (mx - touchStartX);
-                let newH = touchStartData.height - (my - touchStartY);
-                newX = Math.max(0, Math.min(newX, cropData.displayWidth - 50));
-                newY = Math.max(0, Math.min(newY, cropData.displayHeight - 50));
-                newW = Math.max(50, Math.min(newW, cropData.displayWidth - newX));
-                newH = Math.max(50, Math.min(newH, cropData.displayHeight - newY));
+            } else if (dragType === 'resize_tl') {
+                let newX = startData.x + deltaX;
+                let newY = startData.y + deltaY;
+                let newW = startData.width - deltaX;
+                let newH = startData.height - deltaY;
+                newX = Math.max(0, Math.min(newX, cropData.displayWidth - 30));
+                newY = Math.max(0, Math.min(newY, cropData.displayHeight - 30));
+                newW = Math.max(30, Math.min(newW, cropData.displayWidth - newX));
+                newH = Math.max(30, Math.min(newH, cropData.displayHeight - newY));
                 cropData.x = newX;
                 cropData.y = newY;
                 cropData.width = newW;
@@ -1278,15 +1204,22 @@
             }
         });
 
-        document.addEventListener('mouseup', function() {
-            touchDragType = '';
-            touchStartData = null;
+        // 指针释放
+        cropContainer.addEventListener('pointerup', function(e) {
+            if (isDragging) {
+                isDragging = false;
+                dragType = '';
+                startData = null;
+                this.releasePointerCapture(e.pointerId);
+            }
+        });
+
+        cropContainer.addEventListener('pointercancel', function(e) {
+            isDragging = false;
+            dragType = '';
+            startData = null;
         });
     }
-
-    let touchDragType = '';
-    let touchStartX = 0, touchStartY = 0;
-    let touchStartData = null;
 
     function updateCropOverlay() {
         if (!cropData) return;
@@ -1313,7 +1246,7 @@
         const cropY = Math.round(y * scaleY);
         const cropW = Math.round(width * scaleX);
         const cropH = Math.round(height * scaleY);
-        
+
         const img = new Image();
         img.src = imgSrc;
         img.onload = function() {
