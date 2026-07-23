@@ -55,14 +55,15 @@
         }
         .header-bar .bg-btn:hover { background: #2f855a; }
 
+        /* 上传区域：背景透明，保留虚线边框 */
         .upload-area {
-            border: 2px dashed #bdd3e8;
+            border: 2px dashed rgba(189, 211, 232, 0.6);
             padding: 30px;
             text-align: center;
-            background: rgba(255,255,255,0.85);
+            background: transparent !important;
             border-radius: 16px;
             margin-bottom: 30px;
-            backdrop-filter: blur(4px);
+            backdrop-filter: none;
         }
         .upload-area input[type="file"] { margin: 12px auto; display: block; }
         button {
@@ -251,7 +252,7 @@
         /* 按钮透明背景，只显示图标 */
         .controls button {
             background: transparent !important;
-            color: #2b6cb0; /* 图标颜色 */
+            color: #2b6cb0;
             border: none;
             padding: 4px 8px;
             border-radius: 20px;
@@ -546,24 +547,23 @@
     <div class="toast" id="toast"></div>
 
     <div class="header-bar">
-        <h1 style="margin:0;">📖 影子跟读 · 说话人分离</h1>
+        <!-- 标题改为“今天学习了吗” -->
+        <h1 style="margin:0;">📖 今天学习了吗</h1>
         <div style="display:flex; gap:10px;">
             <button class="bg-btn" id="globalBgBtn">🌐 设置背景</button>
             <button class="vocab-btn" id="toggleVocabBtn">📖 生词本 (0)</button>
         </div>
     </div>
 
-    <!-- 上传区域（去掉了文字提示） -->
+    <!-- 上传区域（背景透明） -->
     <div class="upload-area">
-        <!-- 删除了 <p> 标签 -->
         <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.mov,.avi,.mkv">
         <button id="uploadBtn">开始处理</button>
         <div id="loading">等待上传...</div>
     </div>
 
-    <!-- 对话列表（隐藏了标题） -->
+    <!-- 对话列表 -->
     <div class="dialogue-list">
-        <!-- 删除了 <h3> 标签 -->
         <div id="dialogueListContainer">
             <div class="dialogue-empty">还没有保存的对话，上传后自动保存</div>
         </div>
