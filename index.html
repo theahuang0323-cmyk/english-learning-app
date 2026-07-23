@@ -544,7 +544,15 @@
             </div>
         </div>
     </div>
+
     <script>
+    // ============================================================
+    // ⭐ 自动切换 API 地址（本地 vs 线上）
+    // ============================================================
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://127.0.0.1:8000'
+        : 'https://web-production-e41b7.up.railway.app';
+
     // ============================================================
     // 1. 生词本逻辑
     // ============================================================
@@ -1584,7 +1592,7 @@
     }
 
     // ============================================================
-    // 9. 上传处理
+    // 9. 上传处理（使用 API_BASE）
     // ============================================================
     let lastData = null;
 
@@ -1617,7 +1625,7 @@
         formData.append('file', file);
 
         const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|avi|mkv)$/i);
-        const endpoint = isVideo ? 'http://127.0.0.1:8000/upload_video' : 'http://127.0.0.1:8000/upload';
+        const endpoint = isVideo ? `${API_BASE}/upload_video` : `${API_BASE}/upload`;
 
         try {
             const response = await fetch(endpoint, { method: 'POST', body: formData });
