@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI English Teacher - 影子跟读</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f4f8;
+            color: #1a202c;
+            transition: background-image 0.3s, background-color 0.3s;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        body.has-bg {
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        h1 { text-align: center; color: #2b6cb0; }
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-bar .vocab-btn {
+            background: #805ad5;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .header-bar .vocab-btn:hover { background: #6b46c1; }
+        .header-bar .bg-btn {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .header-bar .bg-btn:hover { background: #2f855a; }
+
+        .upload-area {
+            border: 2px dashed #bdd3e8;
+            padding: 30px;
+            text-align: center;
+            background: rgba(255,255,255,0.85);
+            border-radius: 16px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(4px);
+        }
+        .upload-area input[type="file"] { margin: 12px auto; display: block; }
+        button {
+            background: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 10px 32px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover { background: #1a4f7a; }
+        button:disabled { opacity: 0.6; }
+        #loading { margin-top: 10px; color: #4a5568; }
+
+        .dialogue-list {
+            background: rgba(255,255,255,0.85);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            backdrop-filter: blur(4px);
+        }
+        .dialogue-list h3 { margin: 0 0 10px 0; color: #2d3748; }
+        .dialogue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .dialogue-item .info { cursor: pointer; flex: 1; }
+        .dialogue-item .info:hover { color: #2b6cb0; }
+        .dialogue-item .del-btn {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .dialogue-item .del-btn:hover { color: #c53030; }
+        .dialogue-empty { color: #a0aec0; text-align: center; padding: 10px 0; }
+
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            max-width: 100%;
+            position: sticky;
+            top: 10px;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+
+        #resultArea { display: none; }
+
+        #full-text {
+            background: rgba(255,255,255,0.85);
+            padding: 18px;
+            border-radius: 12px;
+            margin: 20px 0;
+            line-height: 1.9;
+            max-height: 400px;
+            overflow-y: auto;
+            backdrop-filter: blur(4px);
+        }
+        #full-text .dialogue-line {
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+        #full-text .dialogue-line.active {
+            background: #ebf8ff;
+            border-left: 3px solid #2b6cb0;
+        }
+        #full-text .dialogue-line .speaker {
+            font-weight: 700;
+            margin-right: 6px;
+        }
+        #full-text .dialogue-line .en-text { display: inline; }
+        #full-text .dialogue-line .translation-text {
+            color: #4a5568;
+            font-size: 14px;
+            margin-left: 12px;
+            display: none;
+        }
+
+        .sentence-card {
+            background: rgba(255,255,255,0.92);
+            padding: 16px 20px;
+            margin: 16px 0;
+            border-radius: 12px;
+            border-left: 5px solid #2b6cb0;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s, border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+            scroll-margin-top: 200px;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            backdrop-filter: blur(2px);
+        }
+        .sentence-card:hover { background: rgba(247, 250, 252, 0.95); }
+        .sentence-card:active { transform: scale(0.99); }
+        .sentence-card.active {
+            border-left-color: #e53e3e;
+            box-shadow: 0 0 0 3px #e53e3e;
+            background: rgba(255, 245, 245, 0.95);
+        }
+        .sentence-card .en {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.8;
+            position: relative;
+            z-index: 2;
+        }
+        .sentence-card .en .speaker-tag {
+            font-weight: 700;
+            margin-right: 8px;
+            background: #e2edf7;
+            padding: 0 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .sentence-card .en span.word {
+            cursor: pointer;
+            color: #2b6cb0;
+            font-weight: 600;
+        }
+        .sentence-card .en span.word:hover {
+            background: #e2edf7;
+        }
+        .sentence-card .zh {
+            color: #2d3748;
+            margin: 4px 0 8px 0;
+            background: rgba(247, 250, 252, 0.8);
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: none;
+            position: relative;
+            z-index: 2;
+        }
+        .sentence-card .card-bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            z-index: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .sentence-card .card-content {
+            position: relative;
+            z-index: 1;
+        }
+        .audio-player {
+            width: 100%;
+            max-width: 300px;
+            margin: 8px 0;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .controls button {
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            position: relative;
+            z-index: 2;
+        }
+        .controls button.active { background: #48bb78; }
+        .controls button.record-btn { background: #e53e3e; }
+        .controls button.record-btn.recording { background: #f6ad55; }
+        .controls .loop-btn {
+            background: #ed8936;
+            padding: 4px 16px;
+        }
+        .controls .loop-btn.active { background: #e53e3e; }
+        .controls .card-settings-btn {
+            background: #718096;
+            font-size: 16px;
+            padding: 0 8px;
+            line-height: 26px;
+        }
+        .controls .card-settings-btn:hover { background: #4a5568; }
+
+        .score-area {
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: rgba(240, 255, 244, 0.9);
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+            display: none;
+            position: relative;
+            z-index: 2;
+        }
+        .score-area .score { font-weight: 700; font-size: 20px; color: #2b6cb0; }
+        .score-area .feedback { color: #2d3748; margin: 4px 0; }
+        .score-area .wrong-words { color: #e53e3e; font-weight: 500; }
+
+        .download-bar {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        .download-bar button {
+            background: #38a169;
+            padding: 6px 16px;
+            font-size: 14px;
+            border-radius: 30px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .download-bar button:hover { background: #2f855a; }
+
+        /* 通用模态框 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white;
+            max-width: 560px;
+            width: 92%;
+            padding: 24px 28px;
+            border-radius: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-card .close-btn {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #a0aec0;
+        }
+        .modal-card .close-btn:hover { color: #2d3748; }
+        .modal-card h3 { margin-top: 0; }
+        .modal-card label { display: block; margin: 12px 0 4px; font-weight: 600; }
+        .modal-card input[type="file"] { display: block; margin: 6px 0; }
+        .modal-card input[type="range"] { width: 100%; margin: 8px 0; }
+
+        /* 剪裁预览容器 */
+        .crop-container {
+            position: relative;
+            width: 100%;
+            max-height: 280px;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            background: #f7fafc;
+            margin: 8px 0;
+            cursor: crosshair;
+        }
+        .crop-container img {
+            width: 100%;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .crop-overlay {
+            position: absolute;
+            border: 2px dashed #fff;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+            pointer-events: none;
+            transition: none;
+        }
+        .crop-overlay .crop-info {
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .preview-box {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid #e2e8f0;
+            margin: 8px 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .btn-group button {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px;
+            border-radius: 30px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-group .btn-apply { background: #2b6cb0; color: white; }
+        .btn-group .btn-apply:hover { background: #1a4f7a; }
+        .btn-group .btn-reset { background: #e53e3e; color: white; }
+        .btn-group .btn-reset:hover { background: #c53030; }
+        .btn-group .btn-crop-preview { background: #805ad5; color: white; }
+        .btn-group .btn-crop-preview:hover { background: #6b46c1; }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d3748;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 头部 -->
+    <div class="header-bar">
+        <h1 style="margin:0;">📖 影子跟读 · 说话人分离</h1>
+        <div style="display:flex; gap:10px;">
+            <button class="bg-btn" id="globalBgBtn">🌐 设置背景</button>
+            <button class="vocab-btn" id="toggleVocabBtn">📖 生词本 (0)</button>
+        </div>
+    </div>
+
+    <!-- 上传区 -->
+    <div class="upload-area">
+        <p>上传英文对话 MP3 或视频 (MP4/MOV/AVI)</p>
+        <input type="file" id="fileInput" accept=".mp3,.mp4,.mov,.avi,.mkv">
+        <button id="uploadBtn">开始处理</button>
+        <div id="loading">等待上传...</div>
+    </div>
+
+    <!-- 对话列表 -->
+    <div class="dialogue-list">
+        <h3>📂 我的对话</h3>
+        <div id="dialogueListContainer">
+            <div class="dialogue-empty">还没有保存的对话，上传后自动保存</div>
+        </div>
+    </div>
+
+    <!-- 生词本 -->
+    <div class="vocab-panel" id="vocabPanel">
+        <div class="vocab-header">
+            <h3>📚 我的生词本</h3>
+            <button class="clear-btn" id="clearVocabBtn">清空全部</button>
+        </div>
+        <div id="vocabList"><div class="vocab-empty">还没有生词，点击句子中的单词加入吧</div></div>
+    </div>
+
+    <!-- 结果区 -->
+    <div id="resultArea">
+        <div class="video-container" id="videoContainer" style="display:none;">
+            <video id="videoPlayer" controls preload="metadata">
+                <source id="videoSource" src="" type="video/mp4">
+                您的浏览器不支持视频标签。
+            </video>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <h3 style="margin:0;">🔊 逐句跟读（点击卡片跳转视频）</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="trans-toggle-btn" id="globalTransToggle" style="background:#ed8936; padding:6px 18px; font-size:14px; border-radius:30px; border:none; color:white; cursor:pointer;">📖 显示所有翻译</button>
+                <button class="en-toggle-btn" id="globalEnToggle" style="background:#3182ce; padding:6px 18px; font-size:14px; border-radius:30px; border:none; color:white; cursor:pointer;">🙈 隐藏所有英文</button>
+                <button id="downloadTxtBtn" style="background:#38a169; padding:6px 16px; font-size:14px; border:none; border-radius:30px; color:white; cursor:pointer;">⬇️ 下载对话</button>
+            </div>
+        </div>
+        <div id="sentencesContainer"></div>
+
+        <h3 style="margin-top:30px;">📝 对话全文</h3>
+        <div id="full-text"></div>
+    </div>
+
+    <!-- 全局背景设置 -->
+    <div class="modal-overlay" id="globalBgModal">
+        <div class="modal-card">
+            <button class="close-btn" id="globalBgModalClose">&times;</button>
+            <h3>🌐 全局背景设置</h3>
+            <label>上传背景图片</label>
+            <input type="file" id="globalBgInput" accept="image/*">
+            <div class="preview-box" id="globalBgPreview" style="background-image: none; background-color: #e2e8f0;"></div>
+            <div class="btn-group">
+                <button class="btn-apply" id="globalBgApply">应用</button>
+                <button class="btn-reset" id="globalBgReset">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 卡片设置（含剪裁工具） -->
+    <div class="modal-overlay" id="cardSettingsModal">
+        <div class="modal-card">
+            <button class="close-btn" id="cardSettingsModalClose">&times;</button>
+            <h3>⚙️ 卡片设置</h3>
+            <p id="cardSettingsIndex">卡片 #1</p>
+            <label>上传卡片背景图</label>
+            <input type="file" id="cardBgInput" accept="image/*">
+            
+            <!-- 剪裁区域 -->
+            <div id="cropArea" style="display:none;">
+                <label>拖拽调整剪裁区域</label>
+                <div class="crop-container" id="cropContainer">
+                    <img id="cropImage" src="" alt="剪裁预览">
+                    <div class="crop-overlay" id="cropOverlay">
+                        <div class="crop-info" id="cropInfo">拖动调整</div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-crop-preview" id="cropPreviewBtn">✂️ 剪裁并预览</button>
+                </div>
+            </div>
+
+            <div class="preview-box" id="cardBgPreview" style="background-image: none; background-color: #e2e8f0;"></div>
+            
+            <label>透明度: <span id="cardOpacityValue">1.00</span></label>
+            <input type="range" id="cardOpacitySlider" min="0" max="100" value="100">
+            
+            <div class="btn-group">
+                <button class="btn-apply" id="cardSettingsApply">应用</button>
+                <button class="btn-reset" id="cardSettingsReset">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 词典弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <button class="close-btn" id="modalCloseBtn">&times;</button>
+            <div class="word-title" id="modalWord">word</div>
+            <div class="phonetic" id="modalPhonetic">/ˈwɜːrd/</div>
+            <div id="modalMeanings"></div>
+            <div class="modal-actions">
+                <button class="add-vocab-btn" id="addVocabBtn">📚 加入生词本</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    // ============================================================
+    // 1. 生词本逻辑
+    // ============================================================
+    let currentWordData = null;
+
+    function getVocab() {
+        try { return JSON.parse(localStorage.getItem('myVocab')) || []; } catch { return []; }
+    }
+    function saveVocab(v) { localStorage.setItem('myVocab', JSON.stringify(v)); updateVocabBadge(); }
+    function updateVocabBadge() {
+        document.getElementById('toggleVocabBtn').textContent = `📖 生词本 (${getVocab().length})`;
+    }
+    function renderVocab() {
+        const list = document.getElementById('vocabList');
+        const vocab = getVocab();
+        if (!vocab.length) {
+            list.innerHTML = `<div class="vocab-empty">还没有生词，点击句子中的单词加入吧</div>`;
+            return;
+        }
+        let html = '';
+        vocab.forEach((item, idx) => {
+            html += `
+                <div class="vocab-item">
+                    <div class="info"><span class="word">${item.word}</span><span class="meaning">${item.phonetic || ''} ${item.meaning || ''}</span></div>
+                    <button class="del-btn" data-index="${idx}">✕</button>
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+        list.querySelectorAll('.del-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idx = parseInt(this.dataset.index);
+                const v = getVocab();
+                v.splice(idx, 1);
+                saveVocab(v);
+                renderVocab();
+                showToast('已删除该单词');
+            });
+        });
+    }
+    function addToVocab(word, phonetic, meaning, example) {
+        const v = getVocab();
+        if (v.some(item => item.word === word)) {
+            showToast('⚠️ 该单词已在生词本中');
+            return false;
+        }
+        v.push({ word, phonetic: phonetic || '', meaning: meaning || '', example: example || '' });
+        saveVocab(v);
+        renderVocab();
+        showToast(`✅ 已添加“${word}”到生词本`);
+        document.getElementById('addVocabBtn').textContent = '✅ 已添加';
+        document.getElementById('addVocabBtn').classList.add('added');
+        return true;
+    }
+
+    document.getElementById('clearVocabBtn').addEventListener('click', function() {
+        if (confirm('确定清空所有生词？')) { saveVocab([]); renderVocab(); showToast('已清空生词本'); }
+    });
+    document.getElementById('toggleVocabBtn').addEventListener('click', function() {
+        document.getElementById('vocabPanel').classList.toggle('open');
+        if (document.getElementById('vocabPanel').classList.contains('open')) renderVocab();
+    });
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ============================================================
+    // 2. 词典 & 单词点击
+    // ============================================================
+    const speakerColors = { 'A': '#FF6B6B', 'B': '#4ECDC4', 'C': '#FFE66D', 'D': '#A8E6CF', 'E': '#FF8A5C', 'F': '#6C5B7B' };
+    function getSpeakerColor(s) { return speakerColors[s] || '#2b6cb0'; }
+
+    function wordify(text) {
+        const parts = text.match(/([\w\-]+|[^\w\s])|\s+/g);
+        if (!parts) return text;
+        return parts.map(part => {
+            if (/^[\w\-]+$/.test(part)) return `<span class="word" data-word="${part}">${part}</span>`;
+            return part === ' ' ? ' ' : part;
+        }).join('');
+    }
+
+    async function fetchDictionary(word) {
+        try {
+            const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+            if (!resp.ok) return null;
+            return await resp.json();
+        } catch { return null; }
+    }
+
+    function showModal(word, data) {
+        const overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalWord').textContent = word;
+        const phoneticEl = document.getElementById('modalPhonetic');
+        const meaningsEl = document.getElementById('modalMeanings');
+        const addBtn = document.getElementById('addVocabBtn');
+        addBtn.textContent = '📚 加入生词本';
+        addBtn.classList.remove('added');
+        meaningsEl.innerHTML = '';
+        let phoneticText = '', meaningText = '', exampleText = '';
+
+        if (!data || !data.length) {
+            phoneticEl.textContent = '';
+            meaningsEl.innerHTML = `<div class="no-def">😕 未找到 “${word}” 的释义。</div>`;
+            currentWordData = { word, phonetic: '', meaning: '无释义', example: '' };
+            overlay.classList.add('active');
+            return;
+        }
+
+        const entry = data[0];
+        const phonetics = entry.phonetics || [];
+        const audioPhonetic = phonetics.find(p => p.text)?.text || '';
+        phoneticEl.textContent = audioPhonetic || '';
+        phoneticText = audioPhonetic || '';
+
+        const meanings = entry.meanings || [];
+        if (!meanings.length) {
+            meaningsEl.innerHTML = `<div class="no-def">暂无释义。</div>`;
+            currentWordData = { word, phonetic: phoneticText, meaning: '暂无释义', example: '' };
+        } else {
+            let firstDef = true;
+            meanings.forEach(m => {
+                const partOfSpeech = m.partOfSpeech || '词性未知';
+                const definitions = m.definitions || [];
+                definitions.forEach((def, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'meaning';
+                    let html = `<span class="part-of-speech">${partOfSpeech}</span>`;
+                    const defText = def.definition || '';
+                    const exText = def.example || '';
+                    if (defText) html += `<div class="definition">${idx+1}. ${defText}</div>`;
+                    if (exText) html += `<div class="example">📌 “${exText}”</div>`;
+                    div.innerHTML = html;
+                    meaningsEl.appendChild(div);
+                    if (firstDef) {
+                        meaningText = defText;
+                        exampleText = exText;
+                        firstDef = false;
+                    }
+                });
+            });
+            currentWordData = { word, phonetic: phoneticText, meaning: meaningText || '已收录', example: exampleText };
+        }
+        overlay.classList.add('active');
+    }
+
+    document.addEventListener('click', async function(e) {
+        const target = e.target.closest('.word');
+        if (!target) return;
+        const word = target.dataset.word;
+        if (!word) return;
+        const cleanWord = word.replace(/^[\W_]+|[\W_]+$/g, '').toLowerCase();
+        if (!cleanWord) return;
+
+        document.getElementById('modalWord').textContent = cleanWord;
+        document.getElementById('modalPhonetic').textContent = '查询中...';
+        document.getElementById('modalMeanings').innerHTML = '';
+        document.getElementById('modalOverlay').classList.add('active');
+
+        const data = await fetchDictionary(cleanWord);
+        showModal(cleanWord, data);
+    });
+
+    document.getElementById('addVocabBtn').addEventListener('click', function() {
+        if (!currentWordData) return;
+        const { word, phonetic, meaning, example } = currentWordData;
+        addToVocab(word, phonetic, meaning, example);
+    });
+
+    document.getElementById('modalCloseBtn').addEventListener('click', function() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    });
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+    });
+
+    // ============================================================
+    // 3. 对话持久化
+    // ============================================================
+    function getDialogues() {
+        try { return JSON.parse(localStorage.getItem('dialogues')) || []; } catch { return []; }
+    }
+    function saveDialogues(d) { localStorage.setItem('dialogues', JSON.stringify(d)); }
+    function generateId() { return Date.now() + '-' + Math.random().toString(36).substr(2, 6); }
+
+    function renderDialogueList() {
+        const container = document.getElementById('dialogueListContainer');
+        const dialogues = getDialogues();
+        if (!dialogues.length) {
+            container.innerHTML = `<div class="dialogue-empty">还没有保存的对话，上传后自动保存</div>`;
+            return;
+        }
+        let html = '';
+        dialogues.forEach((d, idx) => {
+            const name = d.name || `对话 ${idx+1}`;
+            const date = new Date(d.timestamp || d.id).toLocaleString();
+            const count = d.sentences ? d.sentences.length : 0;
+            html += `
+                <div class="dialogue-item">
+                    <div class="info" data-idx="${idx}">
+                        <strong>${name}</strong> <span style="color:#718096; font-size:14px;">${date} (${count}句)</span>
+                    </div>
+                    <button class="del-btn" data-idx="${idx}">✕</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        container.querySelectorAll('.info').forEach(el => {
+            el.addEventListener('click', function() {
+                const idx = parseInt(this.dataset.idx);
+                const dialogues = getDialogues();
+                const data = dialogues[idx];
+                if (data) {
+                    loadDialogueData(data);
+                    showToast(`已加载“${data.name || '对话'}”`);
+                }
+            });
+        });
+
+        container.querySelectorAll('.del-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const idx = parseInt(this.dataset.idx);
+                if (confirm('确定删除这个对话吗？')) {
+                    const dialogues = getDialogues();
+                    dialogues.splice(idx, 1);
+                    saveDialogues(dialogues);
+                    renderDialogueList();
+                    if (currentLoadedId && !dialogues.find(d => d.id === currentLoadedId)) {
+                        document.getElementById('resultArea').style.display = 'none';
+                        currentLoadedId = null;
+                    }
+                    showToast('已删除');
+                }
+            });
+        });
+    }
+
+    let currentLoadedId = null;
+    let currentSentences = [];
+
+    function loadDialogueData(data) {
+        currentLoadedId = data.id;
+        currentSentences = data.sentences;
+        document.getElementById('resultArea').style.display = 'block';
+        const videoContainer = document.getElementById('videoContainer');
+        const videoPlayer = document.getElementById('videoPlayer');
+        if (data.video_url) {
+            videoContainer.style.display = 'block';
+            videoPlayer.src = data.video_url;
+            videoPlayer.load();
+            videoPlayer.removeEventListener('timeupdate', onVideoTimeUpdate);
+            videoPlayer.addEventListener('timeupdate', onVideoTimeUpdate);
+        } else {
+            videoContainer.style.display = 'none';
+            videoPlayer.src = '';
+        }
+        renderProcessedData(data);
+        // 恢复卡片背景设置
+        restoreCardSettings();
+    }
+
+    function saveCurrentDialogue(data, name) {
+        const dialogues = getDialogues();
+        const existing = dialogues.findIndex(d => d.id === data.id);
+        if (existing >= 0) {
+            dialogues[existing] = data;
+        } else {
+            dialogues.push(data);
+        }
+        saveDialogues(dialogues);
+        renderDialogueList();
+    }
+
+    // ============================================================
+    // 4. 视频同步
+    // ============================================================
+    let lastActiveIndex = -1;
+
+    function onVideoTimeUpdate() {
+        const video = document.getElementById('videoPlayer');
+        if (!video || !currentSentences.length) return;
+        const currentTime = video.currentTime;
+        let activeIndex = -1;
+        for (let i = 0; i < currentSentences.length; i++) {
+            const s = currentSentences[i];
+            const start = s.start / 1000;
+            const end = s.end / 1000;
+            if (currentTime >= start && currentTime <= end) {
+                activeIndex = i;
+                break;
+            }
+        }
+        if (activeIndex === -1) {
+            for (let i = currentSentences.length - 1; i >= 0; i--) {
+                if (currentTime >= currentSentences[i].start / 1000) {
+                    activeIndex = i;
+                    break;
+                }
+            }
+        }
+        if (activeIndex === -1 && currentSentences.length > 0) activeIndex = 0;
+
+        if (activeIndex !== lastActiveIndex) {
+            lastActiveIndex = activeIndex;
+            updateActiveSentence(activeIndex);
+        }
+    }
+
+    function updateActiveSentence(index) {
+        document.querySelectorAll('.sentence-card').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.dialogue-line').forEach(el => el.classList.remove('active'));
+
+        if (index < 0 || index >= currentSentences.length) return;
+
+        const cards = document.querySelectorAll('.sentence-card');
+        if (cards[index]) {
+            cards[index].classList.add('active');
+            cards[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        const lines = document.querySelectorAll('.dialogue-line');
+        if (lines[index]) {
+            lines[index].classList.add('active');
+        }
+    }
+    // ============================================================
+    // 5. 卡片背景 + 剪裁 + 透明度控制（新增功能）
+    // ============================================================
+    let currentCardIndex = -1; // 当前正在编辑的卡片索引
+    let cropData = null; // 存储剪裁数据 { x, y, width, height, imgSrc }
+
+    // --- 卡片设置弹窗打开 ---
+    function openCardSettings(index) {
+        currentCardIndex = index;
+        document.getElementById('cardSettingsIndex').textContent = `卡片 #${index+1}`;
+        // 重置剪裁区域
+        document.getElementById('cropArea').style.display = 'none';
+        document.getElementById('cardBgInput').value = '';
+        document.getElementById('cardBgPreview').style.backgroundImage = 'none';
+        document.getElementById('cardBgPreview').style.backgroundColor = '#e2e8f0';
+        // 读取已有设置
+        const settings = getCardSettings(index);
+        if (settings) {
+            if (settings.bgImage) {
+                document.getElementById('cardBgPreview').style.backgroundImage = `url(${settings.bgImage})`;
+                document.getElementById('cardBgPreview').style.backgroundColor = 'transparent';
+            }
+            const opacity = settings.opacity !== undefined ? settings.opacity : 1;
+            document.getElementById('cardOpacitySlider').value = Math.round(opacity * 100);
+            document.getElementById('cardOpacityValue').textContent = opacity.toFixed(2);
+        } else {
+            document.getElementById('cardOpacitySlider').value = 100;
+            document.getElementById('cardOpacityValue').textContent = '1.00';
+        }
+        document.getElementById('cardSettingsModal').classList.add('active');
+    }
+
+    // --- 获取卡片设置 ---
+    function getCardSettings(index) {
+        try {
+            const all = JSON.parse(localStorage.getItem('cardSettings')) || {};
+            return all[index] || null;
+        } catch { return null; }
+    }
+
+    // --- 保存卡片设置 ---
+    function saveCardSettings(index, settings) {
+        try {
+            const all = JSON.parse(localStorage.getItem('cardSettings')) || {};
+            all[index] = settings;
+            localStorage.setItem('cardSettings', JSON.stringify(all));
+        } catch {}
+    }
+
+    // --- 恢复所有卡片设置（加载对话后调用） ---
+    function restoreCardSettings() {
+        const cards = document.querySelectorAll('.sentence-card');
+        cards.forEach((card, idx) => {
+            const settings = getCardSettings(idx);
+            if (settings) {
+                if (settings.bgImage) {
+                    // 给卡片添加背景层
+                    let overlay = card.querySelector('.card-bg-overlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'card-bg-overlay';
+                        card.insertBefore(overlay, card.firstChild);
+                    }
+                    overlay.style.backgroundImage = `url(${settings.bgImage})`;
+                    overlay.style.opacity = settings.opacity !== undefined ? settings.opacity : 1;
+                }
+                // 如果有透明度设置但没有背景图，直接调整卡片本身透明度
+                if (!settings.bgImage && settings.opacity !== undefined) {
+                    card.style.opacity = settings.opacity;
+                }
+            }
+        });
+    }
+
+    // --- 卡片设置弹窗关闭 ---
+    document.getElementById('cardSettingsModalClose').addEventListener('click', function() {
+        document.getElementById('cardSettingsModal').classList.remove('active');
+    });
+    document.getElementById('cardSettingsModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+    });
+
+    // --- 卡片背景图上传 ---
+    document.getElementById('cardBgInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const imgSrc = ev.target.result;
+            // 显示剪裁区域
+            document.getElementById('cropArea').style.display = 'block';
+            document.getElementById('cropImage').src = imgSrc;
+            // 初始化剪裁框（默认占图片80%居中）
+            const img = document.getElementById('cropImage');
+            img.onload = function() {
+                const container = document.getElementById('cropContainer');
+                const cw = container.clientWidth;
+                const ratio = img.naturalWidth / img.naturalHeight;
+                let displayWidth = cw;
+                let displayHeight = cw / ratio;
+                if (displayHeight > 280) {
+                    displayHeight = 280;
+                    displayWidth = 280 * ratio;
+                }
+                // 设置剪裁框初始位置（居中，占图片80%）
+                const boxW = displayWidth * 0.8;
+                const boxH = displayHeight * 0.8;
+                const boxX = (displayWidth - boxW) / 2;
+                const boxY = (displayHeight - boxH) / 2;
+                cropData = {
+                    imgSrc: imgSrc,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    displayWidth: displayWidth,
+                    displayHeight: displayHeight,
+                    x: boxX,
+                    y: boxY,
+                    width: boxW,
+                    height: boxH
+                };
+                updateCropOverlay();
+            };
+            // 如果图片已缓存，直接触发
+            if (document.getElementById('cropImage').complete) {
+                document.getElementById('cropImage').onload();
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // --- 剪裁框拖拽逻辑（简化版：四个角拖动） ---
+    let isDragging = false;
+    let dragType = ''; // 'move', 'resize'
+    let dragStartX, dragStartY, dragStartData;
+
+    document.getElementById('cropContainer').addEventListener('mousedown', function(e) {
+        if (!cropData) return;
+        const rect = this.getBoundingClientRect();
+        const scaleX = cropData.displayWidth / this.clientWidth;
+        const scaleY = cropData.displayHeight / this.clientHeight;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+        // 判断点击位置
+        const { x, y, width, height } = cropData;
+        // 边缘检测（阈值15px）
+        const threshold = 15;
+        if (Math.abs(mx - x) < threshold && Math.abs(my - y) < threshold) {
+            dragType = 'resize';
+            dragStartX = mx;
+            dragStartY = my;
+            dragStartData = { ...cropData };
+            isDragging = true;
+            return;
+        }
+        if (Math.abs(mx - (x+width)) < threshold && Math.abs(my - (y+height)) < threshold) {
+            dragType = 'resize';
+            dragStartX = mx;
+            dragStartY = my;
+            dragStartData = { ...cropData };
+            isDragging = true;
+            return;
+        }
+        // 移动
+        if (mx >= x && mx <= x+width && my >= y && my <= y+height) {
+            dragType = 'move';
+            dragStartX = mx;
+            dragStartY = my;
+            dragStartData = { ...cropData };
+            isDragging = true;
+        }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging || !cropData) return;
+        const rect = document.getElementById('cropContainer').getBoundingClientRect();
+        const scaleX = cropData.displayWidth / rect.width;
+        const scaleY = cropData.displayHeight / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        if (dragType === 'move') {
+            let dx = mx - dragStartX;
+            let dy = my - dragStartY;
+            let newX = dragStartData.x + dx;
+            let newY = dragStartData.y + dy;
+            // 边界约束
+            newX = Math.max(0, Math.min(cropData.displayWidth - cropData.width, newX));
+            newY = Math.max(0, Math.min(cropData.displayHeight - cropData.height, newY));
+            cropData.x = newX;
+            cropData.y = newY;
+            updateCropOverlay();
+        } else if (dragType === 'resize') {
+            // 只允许右下角拖动
+            let newW = dragStartData.width + (mx - dragStartX);
+            let newH = dragStartData.height + (my - dragStartY);
+            // 最小尺寸限制
+            newW = Math.max(50, newW);
+            newH = Math.max(50, newH);
+            // 边界约束
+            newW = Math.min(newW, cropData.displayWidth - cropData.x);
+            newH = Math.min(newH, cropData.displayHeight - cropData.y);
+            cropData.width = newW;
+            cropData.height = newH;
+            updateCropOverlay();
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+
+    function updateCropOverlay() {
+        if (!cropData) return;
+        const { x, y, width, height } = cropData;
+        const overlay = document.getElementById('cropOverlay');
+        overlay.style.left = x + 'px';
+        overlay.style.top = y + 'px';
+        overlay.style.width = width + 'px';
+        overlay.style.height = height + 'px';
+        document.getElementById('cropInfo').textContent = `${Math.round(width)}x${Math.round(height)}`;
+    }
+
+    // --- 剪裁并预览 ---
+    document.getElementById('cropPreviewBtn').addEventListener('click', function() {
+        if (!cropData) return;
+        const { imgSrc, x, y, width, height, naturalWidth, naturalHeight, displayWidth, displayHeight } = cropData;
+        // 计算剪裁比例
+        const scaleX = naturalWidth / displayWidth;
+        const scaleY = naturalHeight / displayHeight;
+        const cropX = Math.round(x * scaleX);
+        const cropY = Math.round(y * scaleY);
+        const cropW = Math.round(width * scaleX);
+        const cropH = Math.round(height * scaleY);
+        // 使用 canvas 剪裁
+        const img = new Image();
+        img.src = imgSrc;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = cropW;
+            canvas.height = cropH;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+            const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            // 预览
+            document.getElementById('cardBgPreview').style.backgroundImage = `url(${croppedDataUrl})`;
+            document.getElementById('cardBgPreview').style.backgroundColor = 'transparent';
+            // 保存到 cropData 用于应用
+            cropData.croppedImage = croppedDataUrl;
+            showToast('✅ 剪裁完成！点击"应用"生效');
+        };
+    });
+
+    // --- 透明度滑块 ---
+    document.getElementById('cardOpacitySlider').addEventListener('input', function() {
+        const val = parseFloat(this.value) / 100;
+        document.getElementById('cardOpacityValue').textContent = val.toFixed(2);
+    });
+
+    // --- 应用卡片设置 ---
+    document.getElementById('cardSettingsApply').addEventListener('click', function() {
+        const idx = currentCardIndex;
+        if (idx < 0) return;
+        const opacity = parseFloat(document.getElementById('cardOpacitySlider').value) / 100;
+        let bgImage = null;
+        // 如果有剪裁后的图片，使用剪裁后的
+        if (cropData && cropData.croppedImage) {
+            bgImage = cropData.croppedImage;
+        } else {
+            // 否则使用预览图的背景（可能是直接上传未经剪裁的）
+            const previewBg = document.getElementById('cardBgPreview').style.backgroundImage;
+            if (previewBg && previewBg !== 'none') {
+                bgImage = previewBg.replace(/url\(["']?|["']?\)$/g, '');
+            }
+        }
+        const settings = { opacity };
+        if (bgImage) settings.bgImage = bgImage;
+        // 保存
+        saveCardSettings(idx, settings);
+        // 应用到卡片
+        const cards = document.querySelectorAll('.sentence-card');
+        if (cards[idx]) {
+            let overlay = cards[idx].querySelector('.card-bg-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'card-bg-overlay';
+                cards[idx].insertBefore(overlay, cards[idx].firstChild);
+            }
+            if (bgImage) {
+                overlay.style.backgroundImage = `url(${bgImage})`;
+                overlay.style.opacity = opacity;
+                // 卡片本身透明度恢复为1
+                cards[idx].style.opacity = 1;
+            } else {
+                // 没有背景图，直接调透明度
+                overlay.style.backgroundImage = 'none';
+                cards[idx].style.opacity = opacity;
+            }
+        }
+        document.getElementById('cardSettingsModal').classList.remove('active');
+        showToast('✅ 卡片设置已应用');
+    });
+
+    // --- 重置卡片设置 ---
+    document.getElementById('cardSettingsReset').addEventListener('click', function() {
+        const idx = currentCardIndex;
+        if (idx < 0) return;
+        // 删除设置
+        try {
+            const all = JSON.parse(localStorage.getItem('cardSettings')) || {};
+            delete all[idx];
+            localStorage.setItem('cardSettings', JSON.stringify(all));
+        } catch {}
+        // 重置卡片样式
+        const cards = document.querySelectorAll('.sentence-card');
+        if (cards[idx]) {
+            const overlay = cards[idx].querySelector('.card-bg-overlay');
+            if (overlay) overlay.style.backgroundImage = 'none';
+            cards[idx].style.opacity = 1;
+        }
+        document.getElementById('cardSettingsModal').classList.remove('active');
+        showToast('已重置卡片设置');
+    });
+
+    // --- 在卡片控制区域增加“设置”按钮（在渲染时添加） ---
+    // 修改 renderProcessedData 中的卡片生成，增加设置按钮（已在 HTML 中预留）
+    // 实际点击事件绑定使用委托
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.card-settings-btn');
+        if (btn) {
+            const card = btn.closest('.sentence-card');
+            if (card) {
+                const idx = parseInt(card.dataset.index);
+                if (!isNaN(idx)) openCardSettings(idx);
+            }
+        }
+    });
+
+    // ============================================================
+    // 6. 全局背景设置
+    // ============================================================
+    document.getElementById('globalBgBtn').addEventListener('click', function() {
+        document.getElementById('globalBgModal').classList.add('active');
+    });
+    document.getElementById('globalBgModalClose').addEventListener('click', function() {
+        document.getElementById('globalBgModal').classList.remove('active');
+    });
+    document.getElementById('globalBgModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+    });
+
+    document.getElementById('globalBgInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('globalBgPreview').style.backgroundImage = `url(${ev.target.result})`;
+            document.getElementById('globalBgPreview').style.backgroundColor = 'transparent';
+            document.getElementById('globalBgPreview').dataset.bgData = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('globalBgApply').addEventListener('click', function() {
+        const preview = document.getElementById('globalBgPreview');
+        const bg = preview.dataset.bgData;
+        if (bg) {
+            document.body.style.backgroundImage = `url(${bg})`;
+            document.body.classList.add('has-bg');
+            localStorage.setItem('globalBg', bg);
+            showToast('✅ 全局背景已应用');
+        } else {
+            showToast('请先上传背景图片');
+        }
+        document.getElementById('globalBgModal').classList.remove('active');
+    });
+
+    document.getElementById('globalBgReset').addEventListener('click', function() {
+        document.body.style.backgroundImage = '';
+        document.body.classList.remove('has-bg');
+        localStorage.removeItem('globalBg');
+        document.getElementById('globalBgPreview').style.backgroundImage = 'none';
+        document.getElementById('globalBgPreview').style.backgroundColor = '#e2e8f0';
+        delete document.getElementById('globalBgPreview').dataset.bgData;
+        showToast('已重置全局背景');
+        document.getElementById('globalBgModal').classList.remove('active');
+    });
+
+    // 页面加载时恢复全局背景
+    (function restoreGlobalBg() {
+        const bg = localStorage.getItem('globalBg');
+        if (bg) {
+            document.body.style.backgroundImage = `url(${bg})`;
+            document.body.classList.add('has-bg');
+        }
+    })();
+
+    // ============================================================
+    // 7. 渲染处理后的数据（包含卡片设置按钮）
+    // ============================================================
+    function renderProcessedData(data) {
+        const container = document.getElementById('sentencesContainer');
+        container.innerHTML = '';
+        const transStates = {};
+        const enStates = {};
+
+        data.sentences.forEach((s, idx) => {
+            const card = document.createElement('div');
+            card.className = 'sentence-card';
+            card.dataset.index = idx;
+            const color = getSpeakerColor(s.speaker);
+            card.style.borderLeftColor = color;
+
+            const speakerTag = `<span class="speaker-tag" style="background:${color}; color:white;">${s.speaker}</span>`;
+            const enHtml = wordify(s.text);
+
+            transStates[idx] = false;
+            enStates[idx] = true;
+
+            card.innerHTML = `
+                <div class="card-content">
+                    <div class="en">${idx+1}. ${speakerTag} <span class="en-text">${enHtml}</span></div>
+                    <div class="zh">📖 ${s.translation}</div>
+                    <div class="controls">
+                        <audio controls class="audio-player" src="${s.audio_url}" preload="none" style="flex:1; min-width:150px;"></audio>
+                        <button class="loop-btn" data-idx="${idx}">🔁 循环跟读</button>
+                        <button class="trans-toggle" data-idx="${idx}">📖 显示翻译</button>
+                        <button class="en-toggle" data-idx="${idx}">🙈 隐藏英文</button>
+                        <button class="record-btn" data-idx="${idx}">🎤 录音</button>
+                        <button class="card-settings-btn" data-idx="${idx}">⚙️</button>
+                    </div>
+                    <div class="score-area" id="score-${idx}">
+                        <div class="score">评分: <span id="score-value-${idx}">0%</span></div>
+                        <div class="feedback" id="feedback-${idx}">等待录音...</div>
+                        <div class="wrong-words" id="wrong-words-${idx}"></div>
+                    </div>
+                    <span style="font-size:12px;color:#888;">${s.audio_url}</span>
+                </div>
+            `;
+            container.appendChild(card);
+
+            const zhDiv = card.querySelector('.zh');
+            zhDiv.style.display = 'none';
+
+            // 卡片点击跳转
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('button') || e.target.closest('audio') || e.target.closest('a')) return;
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const video = document.getElementById('videoPlayer');
+                if (!video || !video.src) {
+                    showToast('没有可跳转的视频');
+                    return;
+                }
+                const targetTime = s.start / 1000;
+                if (video.readyState < 2) {
+                    video.addEventListener('loadedmetadata', function onLoad() {
+                        video.currentTime = targetTime;
+                        video.play();
+                        video.removeEventListener('loadedmetadata', onLoad);
+                    });
+                } else {
+                    video.currentTime = targetTime;
+                    video.play();
+                }
+            });
+
+            // 翻译切换
+            const transBtn = card.querySelector('.trans-toggle');
+            transBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const newState = !transStates[idx];
+                transStates[idx] = newState;
+                zhDiv.style.display = newState ? 'block' : 'none';
+                this.textContent = newState ? '🙈 隐藏翻译' : '📖 显示翻译';
+                const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
+                if (fullLine) {
+                    const transSpan = fullLine.querySelector('.translation-text');
+                    if (transSpan) transSpan.style.display = newState ? 'inline' : 'none';
+                }
+            });
+
+            // 英文隐藏
+            const enBtn = card.querySelector('.en-toggle');
+            const enSpan = card.querySelector('.en-text');
+            enBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const newState = !enStates[idx];
+                enStates[idx] = newState;
+                enSpan.style.display = newState ? 'inline' : 'none';
+                this.textContent = newState ? '🙈 隐藏英文' : '📖 显示英文';
+                const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
+                if (fullLine) {
+                    const enFull = fullLine.querySelector('.en-text');
+                    if (enFull) enFull.style.display = newState ? 'inline' : 'none';
+                }
+            });
+
+            // 循环跟读
+            const loopBtn = card.querySelector('.loop-btn');
+            const audioEl = card.querySelector('audio');
+            let isLooping = false;
+            loopBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                isLooping = !isLooping;
+                if (isLooping) {
+                    this.innerText = '⏹ 停止循环';
+                    this.classList.add('active');
+                    audioEl.loop = true;
+                    audioEl.play();
+                } else {
+                    this.innerText = '🔁 循环跟读';
+                    this.classList.remove('active');
+                    audioEl.loop = false;
+                    audioEl.pause();
+                }
+            });
+
+            // 录音
+            const recordBtn = card.querySelector('.record-btn');
+            let recognition = null;
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
+            } else {
+                recordBtn.disabled = true;
+                recordBtn.title = '浏览器不支持语音识别，请使用 Chrome';
+            }
+
+            let isRecording = false;
+            recordBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (!recognition) {
+                    showToast('浏览器不支持语音识别，请使用 Chrome');
+                    return;
+                }
+                if (isRecording) {
+                    recognition.stop();
+                    recordBtn.textContent = '🎤 录音';
+                    recordBtn.classList.remove('recording');
+                    isRecording = false;
+                    return;
+                }
+
+                try {
+                    recognition.start();
+                    isRecording = true;
+                    recordBtn.textContent = '⏹ 停止录音';
+                    recordBtn.classList.add('recording');
+                    showToast('录音中... 请大声朗读原文');
+
+                    recognition.onresult = function(event) {
+                        let finalText = '';
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            if (event.results[i].isFinal) {
+                                finalText += event.results[i][0].transcript;
+                            }
+                        }
+                        if (finalText) {
+                            const originalText = s.text;
+                            const score = evaluateSpeech(originalText, finalText);
+                            displayScore(idx, score);
+                        }
+                    };
+                    recognition.onerror = function(event) {
+                        console.error('识别错误:', event.error);
+                        if (event.error === 'not-allowed') {
+                            showToast('请允许使用麦克风权限');
+                        } else {
+                            showToast('语音识别错误: ' + event.error);
+                        }
+                        recordBtn.textContent = '🎤 录音';
+                        recordBtn.classList.remove('recording');
+                        isRecording = false;
+                    };
+                    recognition.onend = function() {
+                        recordBtn.textContent = '🎤 录音';
+                        recordBtn.classList.remove('recording');
+                        isRecording = false;
+                        showToast('录音结束');
+                    };
+                } catch (err) {
+                    showToast('录音启动失败: ' + err.message);
+                }
+            });
+        });
+
+        // ---------- 对话全文 ----------
+        const fullTextDiv = document.getElementById('full-text');
+        let dialogueHtml = '';
+        data.sentences.forEach((s, idx) => {
+            const color = getSpeakerColor(s.speaker);
+            const speakerLabel = `<span class="speaker" style="color:${color};">${s.speaker}</span>`;
+            const enHtml = wordify(s.text);
+            const zhText = s.translation || '';
+            dialogueHtml += `
+                <div class="dialogue-line" data-index="${idx}">
+                    ${speakerLabel}: <span class="en-text">${enHtml}</span>
+                    <span class="translation-text">（${zhText}）</span>
+                </div>
+            `;
+        });
+        fullTextDiv.innerHTML = dialogueHtml;
+
+        // ---------- 全局控制 ----------
+        const globalTransToggle = document.getElementById('globalTransToggle');
+        const globalEnToggle = document.getElementById('globalEnToggle');
+        let allTransVisible = false;
+        let allEnVisible = true;
+
+        globalTransToggle.onclick = function(e) {
+            allTransVisible = !allTransVisible;
+            const newState = allTransVisible;
+            document.querySelectorAll('.sentence-card').forEach((card, idx) => {
+                const zhDiv = card.querySelector('.zh');
+                const transBtn = card.querySelector('.trans-toggle');
+                if (zhDiv) zhDiv.style.display = newState ? 'block' : 'none';
+                if (transBtn) transBtn.textContent = newState ? '🙈 隐藏翻译' : '📖 显示翻译';
+                transStates[idx] = newState;
+                const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
+                if (fullLine) {
+                    const transSpan = fullLine.querySelector('.translation-text');
+                    if (transSpan) transSpan.style.display = newState ? 'inline' : 'none';
+                }
+            });
+            this.textContent = newState ? '🙈 隐藏所有翻译' : '📖 显示所有翻译';
+        };
+
+        globalEnToggle.onclick = function(e) {
+            allEnVisible = !allEnVisible;
+            const newState = allEnVisible;
+            document.querySelectorAll('.sentence-card').forEach((card, idx) => {
+                const enSpan = card.querySelector('.en-text');
+                const enBtn = card.querySelector('.en-toggle');
+                if (enSpan) enSpan.style.display = newState ? 'inline' : 'none';
+                if (enBtn) enBtn.textContent = newState ? '🙈 隐藏英文' : '📖 显示英文';
+                enStates[idx] = newState;
+                const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
+                if (fullLine) {
+                    const enFull = fullLine.querySelector('.en-text');
+                    if (enFull) enFull.style.display = newState ? 'inline' : 'none';
+                }
+            });
+            this.textContent = newState ? '🙈 隐藏所有英文' : '📖 显示所有英文';
+        };
+
+        // 恢复卡片设置（在卡片渲染完成后）
+        setTimeout(restoreCardSettings, 100);
+    }
+
+    // ============================================================
+    // 8. 评分算法
+    // ============================================================
+    function evaluateSpeech(original, recognized) {
+        const clean = (text) => {
+            return text.toLowerCase().replace(/[^a-z\s']/g, '').trim().split(/\s+/);
+        };
+        const origWords = clean(original);
+        const recWords = clean(recognized);
+        if (!origWords.length) return { score: 0, feedback: '原文为空', wrongWordsHtml: '' };
+
+        let matched = 0;
+        let wrong = [];
+        const minLen = Math.min(origWords.length, recWords.length);
+        for (let i = 0; i < minLen; i++) {
+            if (origWords[i] === recWords[i]) {
+                matched++;
+            } else {
+                wrong.push({ expected: origWords[i], got: recWords[i] || '(未说)' });
+            }
+        }
+        if (recWords.length > origWords.length) {
+            for (let i = origWords.length; i < recWords.length; i++) {
+                wrong.push({ expected: '(无)', got: recWords[i] });
+            }
+        }
+        if (origWords.length > recWords.length) {
+            for (let i = recWords.length; i < origWords.length; i++) {
+                wrong.push({ expected: origWords[i], got: '(未说)' });
+            }
+        }
+
+        const score = Math.round((matched / origWords.length) * 100);
+        let feedback = '';
+        if (score >= 90) feedback = '🎉 太棒了！发音非常准确！';
+        else if (score >= 70) feedback = '👍 不错，部分单词需要加强。';
+        else if (score >= 50) feedback = '📖 多练习，注意发音。';
+        else feedback = '🔊 建议先听原声再模仿。';
+
+        let wrongWordsHtml = '';
+        if (wrong.length) {
+            wrongWordsHtml = '需注意的单词: ' + wrong.map(w => w.expected).join(', ');
+        }
+        return { score, feedback, wrongWordsHtml };
+    }
+
+    function displayScore(idx, result) {
+        const scoreDiv = document.getElementById(`score-${idx}`);
+        if (!scoreDiv) return;
+        scoreDiv.style.display = 'block';
+        document.getElementById(`score-value-${idx}`).textContent = `${result.score}%`;
+        document.getElementById(`feedback-${idx}`).textContent = result.feedback;
+        document.getElementById(`wrong-words-${idx}`).textContent = result.wrongWordsHtml;
+    }
+
+    // ============================================================
+    // 9. 上传处理
+    // ============================================================
+    let lastData = null;
+
+    function downloadText() {
+        if (!lastData) return alert('没有可下载的对话数据');
+        const lines = lastData.sentences.map(s => `${s.speaker}: ${s.text}（${s.translation}）`);
+        const content = lines.join('\n');
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '对话记录.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('uploadBtn').onclick = async function() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) return alert('请选择文件');
+
+        const loading = document.getElementById('loading');
+        const btn = this;
+        btn.disabled = true;
+        loading.innerHTML = '⏳ 上传并处理中...';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|avi|mkv)$/i);
+        const endpoint = isVideo ? 'http://127.0.0.1:8000/upload_video' : 'http://127.0.0.1:8000/upload';
+
+        try {
+            const response = await fetch(endpoint, { method: 'POST', body: formData });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                const id = generateId();
+                const name = file.name.replace(/\.[^/.]+$/, '') || '未命名';
+                const dialogueData = {
+                    id: id,
+                    name: name,
+                    full_text: data.full_text,
+                    speaker_count: data.speaker_count,
+                    sentences: data.sentences,
+                    timestamp: Date.now(),
+                    video_url: data.video_url || null,
+                    video_filename: data.video_filename || null
+                };
+                saveCurrentDialogue(dialogueData);
+                loadDialogueData(dialogueData);
+                lastData = dialogueData;
+                loading.innerHTML = `✅ 处理完成并已保存！共 ${data.sentences.length} 句`;
+                fileInput.value = '';
+            } else {
+                loading.innerHTML = '❌ 处理失败：' + (data.message || JSON.stringify(data));
+            }
+        } catch (e) {
+            loading.innerHTML = '❌ 网络错误，请确认后端已启动';
+            console.error(e);
+        }
+        btn.disabled = false;
+    };
+
+    document.getElementById('downloadTxtBtn').addEventListener('click', downloadText);
+
+    // ============================================================
+    // 10. 初始化
+    // ============================================================
+    updateVocabBadge();
+    renderVocab();
+    renderDialogueList();
+
+    const dialogues = getDialogues();
+    if (dialogues.length) {
+        const latest = dialogues[dialogues.length - 1];
+        loadDialogueData(latest);
+        showToast(`已加载最近对话: ${latest.name || '对话'}`);
+    }
+    </script>
+</body>
+</html>
