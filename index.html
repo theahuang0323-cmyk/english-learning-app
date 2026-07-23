@@ -156,7 +156,6 @@
             display: none;
         }
 
-        /* ========== 卡片样式 ========== */
         .sentence-card {
             background: rgba(255,255,255,0.92);
             padding: 16px 20px;
@@ -235,13 +234,14 @@
         }
         .audio-player {
             width: 100%;
-            max-width: 300px;
+            max-width: 280px;
             margin: 8px 0;
+            height: 40px;
         }
         .controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             margin-top: 8px;
         }
@@ -249,27 +249,34 @@
             background: #3182ce;
             color: white;
             border: none;
-            padding: 4px 14px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 16px;
             cursor: pointer;
             position: relative;
             z-index: 2;
             touch-action: manipulation;
+            min-width: 36px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        .controls button:hover { opacity: 0.85; }
         .controls button.active { background: #48bb78; }
         .controls button.record-btn { background: #e53e3e; }
         .controls button.record-btn.recording { background: #f6ad55; }
         .controls .loop-btn {
             background: #ed8936;
-            padding: 4px 16px;
+            padding: 4px 12px;
         }
         .controls .loop-btn.active { background: #e53e3e; }
         .controls .card-settings-btn {
             background: #718096;
-            font-size: 16px;
+            font-size: 18px;
             padding: 0 8px;
-            line-height: 26px;
+            min-width: 36px;
+            min-height: 36px;
         }
         .controls .card-settings-btn:hover { background: #4a5568; }
 
@@ -305,7 +312,6 @@
         }
         .download-bar button:hover { background: #2f855a; }
 
-        /* 模态框 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -437,7 +443,6 @@
         .btn-group .btn-crop-preview { background: #805ad5; color: white; }
         .btn-group .btn-crop-preview:hover { background: #6b46c1; }
 
-        /* 生词本 */
         .vocab-panel {
             display: none;
             background: white;
@@ -507,23 +512,21 @@
         }
         .toast.show { opacity: 1; }
 
-        /* 手机适配 */
         @media (max-width: 640px) {
             body { padding: 12px; }
             .sentence-card { padding: 12px 14px; }
             .sentence-card .en { font-size: 16px; }
-            .controls button { font-size: 12px; padding: 3px 10px; }
+            .controls button { font-size: 16px; padding: 4px 10px; min-width: 34px; min-height: 34px; }
             .modal-card { padding: 16px 18px; }
             .upload-area { padding: 20px; }
             .header-bar h1 { font-size: 20px; }
+            .audio-player { max-width: 100%; height: 36px; }
         }
     </style>
 </head>
 <body>
-    <!-- Toast -->
     <div class="toast" id="toast"></div>
 
-    <!-- 头部 -->
     <div class="header-bar">
         <h1 style="margin:0;">📖 影子跟读 · 说话人分离</h1>
         <div style="display:flex; gap:10px;">
@@ -532,7 +535,6 @@
         </div>
     </div>
 
-    <!-- 上传区 -->
     <div class="upload-area">
         <p>上传英文对话 MP3 或视频 (MP4/MOV/AVI)</p>
         <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.mov,.avi,.mkv">
@@ -540,7 +542,6 @@
         <div id="loading">等待上传...</div>
     </div>
 
-    <!-- 对话列表 -->
     <div class="dialogue-list">
         <h3>📂 我的对话</h3>
         <div id="dialogueListContainer">
@@ -548,7 +549,6 @@
         </div>
     </div>
 
-    <!-- 生词本 -->
     <div class="vocab-panel" id="vocabPanel">
         <div class="vocab-header">
             <h3>📚 我的生词本</h3>
@@ -557,7 +557,6 @@
         <div id="vocabList"><div class="vocab-empty">还没有生词，点击句子中的单词加入吧</div></div>
     </div>
 
-    <!-- 结果区 -->
     <div id="resultArea">
         <div class="video-container" id="videoContainer" style="display:none;">
             <video id="videoPlayer" controls preload="metadata">
@@ -604,7 +603,6 @@
             <label>上传卡片背景图</label>
             <input type="file" id="cardBgInput" accept="image/*">
             
-            <!-- 剪裁区域 -->
             <div id="cropArea" style="display:none;">
                 <label>👆 用手指拖拽调整剪裁区域</label>
                 <div class="crop-container" id="cropContainer">
@@ -648,9 +646,9 @@
 
     <script>
     // ============================================================
-    // 自动适配环境（本地 vs 线上）
+    // API_BASE 硬编码
     // ============================================================
-    const API_BASE = 'https://web-production-e41b7.up.railway.app'; // 硬编码线上地址
+    const API_BASE = 'https://web-production-e41b7.up.railway.app';
 
     // ============================================================
     // 1. 生词本
@@ -984,7 +982,7 @@
     }
 
     // ============================================================
-    // 5. 卡片背景 + 剪裁（手机触摸支持）
+    // 5. 卡片背景设置
     // ============================================================
     let currentCardIndex = -1;
     let cropData = null;
@@ -1056,7 +1054,6 @@
         if (e.target === this) this.classList.remove('active');
     });
 
-    // --- 背景图上传 ---
     document.getElementById('cardBgInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1101,20 +1098,12 @@
         reader.readAsDataURL(file);
     });
 
-    // ========== 手机触摸剪裁 ==========
-    let touchDragType = '';
-    let touchStartX = 0, touchStartY = 0;
-    let touchStartData = null;
-
     function initCropTouchEvents() {
         const container = document.getElementById('cropContainer');
-        // 移除旧监听
         const newContainer = container.cloneNode(true);
         container.parentNode.replaceChild(newContainer, container);
-        // 重新获取引用
         const newCropContainer = document.getElementById('cropContainer');
         
-        // 触摸开始
         newCropContainer.addEventListener('touchstart', function(e) {
             e.preventDefault();
             if (!cropData) return;
@@ -1128,7 +1117,6 @@
             const { x, y, width, height } = cropData;
             const threshold = 25;
             
-            // 检查点击位置
             if (Math.abs(mx - x) < threshold && Math.abs(my - y) < threshold) {
                 touchDragType = 'resize_tl';
                 touchStartX = mx; touchStartY = my;
@@ -1148,7 +1136,6 @@
             }
         }, { passive: false });
 
-        // 触摸移动
         newCropContainer.addEventListener('touchmove', function(e) {
             e.preventDefault();
             if (!touchDragType || !cropData || !touchStartData) return;
@@ -1201,7 +1188,6 @@
             touchStartData = null;
         });
 
-        // 也支持鼠标（桌面端）
         newCropContainer.addEventListener('mousedown', function(e) {
             if (!cropData) return;
             const rect = this.getBoundingClientRect();
@@ -1282,6 +1268,10 @@
         });
     }
 
+    let touchDragType = '';
+    let touchStartX = 0, touchStartY = 0;
+    let touchStartData = null;
+
     function updateCropOverlay() {
         if (!cropData) return;
         const { x, y, width, height } = cropData;
@@ -1298,7 +1288,6 @@
         }
     }
 
-    // --- 剪裁预览 ---
     document.getElementById('cropPreviewBtn').addEventListener('click', function() {
         if (!cropData) return;
         const { imgSrc, x, y, width, height, naturalWidth, naturalHeight, displayWidth, displayHeight } = cropData;
@@ -1325,13 +1314,11 @@
         };
     });
 
-    // --- 透明度 ---
     document.getElementById('cardOpacitySlider').addEventListener('input', function() {
         const val = parseFloat(this.value) / 100;
         document.getElementById('cardOpacityValue').textContent = val.toFixed(2);
     });
 
-    // --- 应用卡片 ---
     document.getElementById('cardSettingsApply').addEventListener('click', function() {
         const idx = currentCardIndex;
         if (idx < 0) return;
@@ -1369,7 +1356,6 @@
         showToast('✅ 卡片设置已应用');
     });
 
-    // --- 重置卡片 ---
     document.getElementById('cardSettingsReset').addEventListener('click', function() {
         const idx = currentCardIndex;
         if (idx < 0) return;
@@ -1458,7 +1444,7 @@
     })();
 
     // ============================================================
-    // 7. 渲染处理后的数据（已删除底部链接文字）
+    // 7. 渲染数据
     // ============================================================
     function renderProcessedData(data) {
         const container = document.getElementById('sentencesContainer');
@@ -1479,25 +1465,23 @@
             transStates[idx] = false;
             enStates[idx] = true;
 
-            // ⭐ 卡片内容：保留音频播放器，删除底部链接文字
             card.innerHTML = `
                 <div class="card-content">
                     <div class="en">${idx+1}. ${speakerTag} <span class="en-text">${enHtml}</span></div>
                     <div class="zh">📖 ${s.translation}</div>
                     <div class="controls">
-                        <audio controls class="audio-player" src="${s.audio_url}" preload="none" style="flex:1; min-width:150px;"></audio>
-                        <button class="loop-btn" data-idx="${idx}">🔁 循环跟读</button>
-                        <button class="trans-toggle" data-idx="${idx}">📖 显示翻译</button>
-                        <button class="en-toggle" data-idx="${idx}">🙈 隐藏英文</button>
-                        <button class="record-btn" data-idx="${idx}">🎤 录音</button>
-                        <button class="card-settings-btn" data-idx="${idx}">⚙️</button>
+                        <audio controls class="audio-player" src="${s.audio_url}" preload="none"></audio>
+                        <button class="loop-btn" data-idx="${idx}" title="循环跟读">🔁</button>
+                        <button class="trans-toggle" data-idx="${idx}" title="显示翻译">📖</button>
+                        <button class="en-toggle" data-idx="${idx}" title="隐藏英文">🙈</button>
+                        <button class="record-btn" data-idx="${idx}" title="录音">🎤</button>
+                        <button class="card-settings-btn" data-idx="${idx}" title="卡片设置">⚙️</button>
                     </div>
                     <div class="score-area" id="score-${idx}">
                         <div class="score">评分: <span id="score-value-${idx}">0%</span></div>
                         <div class="feedback" id="feedback-${idx}">等待录音...</div>
                         <div class="wrong-words" id="wrong-words-${idx}"></div>
                     </div>
-                    <!-- 已删除底部链接 <span style="font-size:12px;color:#888;">${s.audio_url}</span> -->
                 </div>
             `;
             container.appendChild(card);
@@ -1505,6 +1489,7 @@
             const zhDiv = card.querySelector('.zh');
             zhDiv.style.display = 'none';
 
+            // 卡片点击跳转
             card.addEventListener('click', function(e) {
                 if (e.target.closest('button') || e.target.closest('audio') || e.target.closest('a')) return;
                 card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1526,13 +1511,14 @@
                 }
             });
 
+            // 翻译切换
             const transBtn = card.querySelector('.trans-toggle');
             transBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const newState = !transStates[idx];
                 transStates[idx] = newState;
                 zhDiv.style.display = newState ? 'block' : 'none';
-                this.textContent = newState ? '🙈 隐藏翻译' : '📖 显示翻译';
+                this.textContent = newState ? '🙈' : '📖';
                 const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
                     const transSpan = fullLine.querySelector('.translation-text');
@@ -1540,6 +1526,7 @@
                 }
             });
 
+            // 英文隐藏
             const enBtn = card.querySelector('.en-toggle');
             const enSpan = card.querySelector('.en-text');
             enBtn.addEventListener('click', function(e) {
@@ -1547,7 +1534,7 @@
                 const newState = !enStates[idx];
                 enStates[idx] = newState;
                 enSpan.style.display = newState ? 'inline' : 'none';
-                this.textContent = newState ? '🙈 隐藏英文' : '📖 显示英文';
+                this.textContent = newState ? '🙈' : '📖';
                 const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
                     const enFull = fullLine.querySelector('.en-text');
@@ -1555,6 +1542,7 @@
                 }
             });
 
+            // 循环跟读
             const loopBtn = card.querySelector('.loop-btn');
             const audioEl = card.querySelector('audio');
             let isLooping = false;
@@ -1562,18 +1550,19 @@
                 e.stopPropagation();
                 isLooping = !isLooping;
                 if (isLooping) {
-                    this.innerText = '⏹ 停止循环';
+                    this.textContent = '⏹';
                     this.classList.add('active');
                     audioEl.loop = true;
                     audioEl.play();
                 } else {
-                    this.innerText = '🔁 循环跟读';
+                    this.textContent = '🔁';
                     this.classList.remove('active');
                     audioEl.loop = false;
                     audioEl.pause();
                 }
             });
 
+            // 录音
             const recordBtn = card.querySelector('.record-btn');
             let recognition = null;
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -1597,7 +1586,7 @@
                 }
                 if (isRecording) {
                     recognition.stop();
-                    recordBtn.textContent = '🎤 录音';
+                    recordBtn.textContent = '🎤';
                     recordBtn.classList.remove('recording');
                     isRecording = false;
                     return;
@@ -1606,7 +1595,7 @@
                 try {
                     recognition.start();
                     isRecording = true;
-                    recordBtn.textContent = '⏹ 停止录音';
+                    recordBtn.textContent = '⏹';
                     recordBtn.classList.add('recording');
                     showToast('录音中... 请大声朗读原文');
 
@@ -1630,12 +1619,12 @@
                         } else {
                             showToast('语音识别错误: ' + event.error);
                         }
-                        recordBtn.textContent = '🎤 录音';
+                        recordBtn.textContent = '🎤';
                         recordBtn.classList.remove('recording');
                         isRecording = false;
                     };
                     recognition.onend = function() {
-                        recordBtn.textContent = '🎤 录音';
+                        recordBtn.textContent = '🎤';
                         recordBtn.classList.remove('recording');
                         isRecording = false;
                         showToast('录音结束');
@@ -1646,7 +1635,7 @@
             });
         });
 
-        // ---------- 对话全文 ----------
+        // 对话全文
         const fullTextDiv = document.getElementById('full-text');
         let dialogueHtml = '';
         data.sentences.forEach((s, idx) => {
@@ -1663,7 +1652,7 @@
         });
         fullTextDiv.innerHTML = dialogueHtml;
 
-        // ---------- 全局控制 ----------
+        // 全局控制
         const globalTransToggle = document.getElementById('globalTransToggle');
         const globalEnToggle = document.getElementById('globalEnToggle');
         let allTransVisible = false;
@@ -1676,7 +1665,7 @@
                 const zhDiv = card.querySelector('.zh');
                 const transBtn = card.querySelector('.trans-toggle');
                 if (zhDiv) zhDiv.style.display = newState ? 'block' : 'none';
-                if (transBtn) transBtn.textContent = newState ? '🙈 隐藏翻译' : '📖 显示翻译';
+                if (transBtn) transBtn.textContent = newState ? '🙈' : '📖';
                 transStates[idx] = newState;
                 const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
@@ -1694,7 +1683,7 @@
                 const enSpan = card.querySelector('.en-text');
                 const enBtn = card.querySelector('.en-toggle');
                 if (enSpan) enSpan.style.display = newState ? 'inline' : 'none';
-                if (enBtn) enBtn.textContent = newState ? '🙈 隐藏英文' : '📖 显示英文';
+                if (enBtn) enBtn.textContent = newState ? '🙈' : '📖';
                 enStates[idx] = newState;
                 const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
@@ -1709,7 +1698,7 @@
     }
 
     // ============================================================
-    // 8. 评分算法
+    // 8. 评分
     // ============================================================
     function evaluateSpeech(original, recognized) {
         const clean = (text) => {
@@ -1764,7 +1753,7 @@
     }
 
     // ============================================================
-    // 9. 上传处理
+    // 9. 上传
     // ============================================================
     let lastData = null;
 
