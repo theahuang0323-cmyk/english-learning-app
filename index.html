@@ -301,24 +301,22 @@
             position: relative;
             z-index: 2;
         }
-        .score-area .score-close {
+        .score-area .score { font-weight: 700; font-size: 20px; color: #2b6cb0; }
+        .score-area .feedback { color: #2d3748; margin: 4px 0; }
+        .score-area .wrong-words { color: #e53e3e; font-weight: 500; }
+        .score-area .score-close-btn {
             position: absolute;
             top: 6px;
             right: 10px;
             background: none;
             border: none;
+            color: #a0aec0;
             font-size: 18px;
             cursor: pointer;
-            color: #a0aec0;
             padding: 0 4px;
-            line-height: 1;
+            z-index: 5;
         }
-        .score-area .score-close:hover {
-            color: #e53e3e;
-        }
-        .score-area .score { font-weight: 700; font-size: 20px; color: #2b6cb0; }
-        .score-area .feedback { color: #2d3748; margin: 4px 0; }
-        .score-area .wrong-words { color: #e53e3e; font-weight: 500; }
+        .score-area .score-close-btn:hover { color: #e53e3e; }
 
         .download-bar {
             display: flex;
@@ -808,18 +806,9 @@
         } catch { return null; }
     }
 
-    // 翻译单词为中文（复用翻译函数）
+    // 翻译单词为中文
     async function translateWord(word) {
         if (!word) return '';
-        try {
-            // 使用已有的翻译函数（deep_translator）
-            const response = await fetch(`${API_BASE}/translate_word?q=${encodeURIComponent(word)}`);
-            if (response.ok) {
-                const data = await response.json();
-                return data.translation || word;
-            }
-        } catch (e) {}
-        // 如果后端没有翻译接口，调用免费API
         try {
             const resp = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`);
             const data = await resp.json();
@@ -842,7 +831,6 @@
         meaningsEl.innerHTML = '';
         let phoneticText = '', meaningText = '', exampleText = '';
 
-        // 先显示加载中
         chineseEl.textContent = '中文释义: 加载中...';
 
         if (!data || !data.length) {
@@ -890,7 +878,6 @@
             currentWordData = { word, phonetic: phoneticText, meaning: meaningText || '已收录', example: exampleText };
         }
 
-        // 异步获取中文翻译
         translateWord(word).then(zh => {
             chineseEl.textContent = `中文释义: ${zh}`;
         });
@@ -1472,7 +1459,7 @@
     })();
 
     // ============================================================
-    // 7. 渲染数据（录音功能优化 + 评分关闭按钮）
+    // 7. 渲染数据（带关闭评分功能 + 录音优化）
     // ============================================================
     function renderProcessedData(data) {
         const container = document.getElementById('sentencesContainer');
@@ -1502,11 +1489,11 @@
                         <button class="loop-btn" data-idx="${idx}" title="循环跟读">循环</button>
                         <button class="trans-toggle" data-idx="${idx}" title="显示翻译">翻译</button>
                         <button class="en-toggle" data-idx="${idx}" title="隐藏英文">隐藏英文</button>
-                        <button class="record-btn" data-idx="${idx}" title="录音">录音</button>
+                        <button class="record-btn" data-idx="${idx}" title="录音评分">录音</button>
                         <button class="card-settings-btn" data-idx="${idx}" title="卡片设置">设置</button>
                     </div>
                     <div class="score-area" id="score-${idx}">
-                        <button class="score-close" data-idx="${idx}" title="关闭评分">✕</button>
+                        <button class="score-close-btn" data-idx="${idx}" title="关闭评分">✕</button>
                         <div class="score">评分: <span id="score-value-${idx}">0%</span></div>
                         <div class="feedback" id="feedback-${idx}">等待录音...</div>
                         <div class="wrong-words" id="wrong-words-${idx}"></div>
@@ -1515,18 +1502,19 @@
             `;
             container.appendChild(card);
 
-            const zhDiv = card.querySelector('.zh');
-            zhDiv.style.display = 'none';
-
-            // ---------- 评分关闭按钮 ----------
-            const closeScoreBtn = card.querySelector('.score-close');
-            if (closeScoreBtn) {
-                closeScoreBtn.addEventListener('click', function(e) {
+            // ---- 关闭评分功能 ----
+            const scoreArea = document.getElementById(`score-${idx}`);
+            const closeBtn = scoreArea ? scoreArea.querySelector('.score-close-btn') : null;
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    const scoreDiv = document.getElementById(`score-${idx}`);
-                    if (scoreDiv) scoreDiv.style.display = 'none';
+                    const area = document.getElementById(`score-${idx}`);
+                    if (area) area.style.display = 'none';
                 });
             }
+
+            const zhDiv = card.querySelector('.zh');
+            zhDiv.style.display = 'none';
 
             // 卡片点击跳转
             card.addEventListener('click', function(e) {
@@ -1609,20 +1597,19 @@
             // 检测浏览器是否支持 Web Speech API
             const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const isWechat = /MicroMessenger/i.test(navigator.userAgent);
 
-            if (!isSupported || isIOS || isWechat) {
+            if (!isSupported || isIOS) {
                 recordBtn.disabled = true;
-                recordBtn.title = isWechat ? '微信不支持录音，请在浏览器中打开' : (isIOS ? 'iOS 不支持录音评分' : '浏览器不支持语音识别');
-                recordBtn.textContent = isWechat ? '微信不支持' : (isIOS ? 'iOS不支持' : '不支持');
+                recordBtn.title = isIOS ? 'iOS 不支持录音评分' : '浏览器不支持语音识别';
+                recordBtn.textContent = isIOS ? '❌ iOS不支持' : '不支持';
                 recordBtn.style.opacity = '0.5';
             }
 
             recordBtn.addEventListener('click', async function(e) {
                 e.stopPropagation();
 
-                if (!isSupported || isIOS || isWechat) {
-                    showToast(isWechat ? '⚠️ 微信不支持录音，请在浏览器中打开' : (isIOS ? '⚠️ iOS 不支持语音识别' : '⚠️ 浏览器不支持语音识别'));
+                if (!isSupported || isIOS) {
+                    showToast(isIOS ? '⚠️ iOS 不支持语音识别' : '⚠️ 浏览器不支持语音识别');
                     return;
                 }
 
@@ -1639,12 +1626,18 @@
                     return;
                 }
 
-                // 请求麦克风权限
+                // 先请求麦克风权限（提前暴露问题）
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     stream.getTracks().forEach(track => track.stop());
                 } catch (err) {
-                    showToast('❌ 无法访问麦克风，请在浏览器设置中允许麦克风权限');
+                    let msg = '❌ 无法访问麦克风';
+                    if (err.name === 'NotAllowedError') {
+                        msg = '⚠️ 请在浏览器设置中允许麦克风权限，然后刷新页面重试';
+                    } else if (err.name === 'NotFoundError') {
+                        msg = '⚠️ 未检测到麦克风设备，请连接麦克风';
+                    }
+                    showToast(msg);
                     return;
                 }
 
@@ -1682,7 +1675,7 @@
                     console.error('识别错误:', event.error);
                     let msg = '语音识别错误: ' + event.error;
                     if (event.error === 'not-allowed') {
-                        msg = '⚠️ 请允许使用麦克风权限';
+                        msg = '⚠️ 请允许使用麦克风权限，刷新后重试';
                     } else if (event.error === 'no-speech') {
                         msg = '🔇 未检测到语音，请大声朗读';
                     } else if (event.error === 'aborted') {
