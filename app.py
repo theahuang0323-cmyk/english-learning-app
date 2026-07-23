@@ -126,7 +126,8 @@ def process_audio_file(audio_path, host, file_id):
 # ---------- 音频上传 ----------
 @app.post("/upload")
 async def upload_audio(request: Request, file: UploadFile = File(...)):
-    host = f"{request.url.scheme}://{request.url.hostname}:{request.url.port}"
+    port = request.url.port
+    host = f"{request.url.scheme}://{request.url.hostname}" + (f":{port}" if port else "")
     file_id = str(uuid.uuid4())
     original_path = f"uploads/{file_id}_{file.filename}"
     with open(original_path, "wb") as buffer:
