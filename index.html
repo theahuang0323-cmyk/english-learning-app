@@ -25,7 +25,7 @@
             background-attachment: fixed;
         }
 
-        h1 { text-align: center; color: #2b6cb0; }
+        h1 { text-align: center; color: #2b6cb0; font-size: 24px; }
         .header-bar {
             display: flex;
             justify-content: space-between;
@@ -34,28 +34,22 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        .header-bar .vocab-btn {
-            background: #805ad5;
-            color: white;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-size: 15px;
-            cursor: pointer;
-        }
-        .header-bar .vocab-btn:hover { background: #6b46c1; }
+        .header-bar .vocab-btn,
         .header-bar .bg-btn {
-            background: #38a169;
-            color: white;
-            border: none;
-            padding: 8px 18px;
+            background: transparent !important;
+            color: #2d3748 !important;
+            border: 1px solid #bdd3e8 !important;
+            padding: 6px 16px;
             border-radius: 30px;
-            font-size: 15px;
+            font-size: 14px;
             cursor: pointer;
+            transition: background 0.2s;
         }
-        .header-bar .bg-btn:hover { background: #2f855a; }
+        .header-bar .vocab-btn:hover,
+        .header-bar .bg-btn:hover {
+            background: rgba(0,0,0,0.04) !important;
+        }
 
-        /* 上传区域：背景透明，保留虚线边框 */
         .upload-area {
             border: 2px dashed rgba(189, 211, 232, 0.6);
             padding: 30px;
@@ -249,49 +243,50 @@
             align-items: center;
             margin-top: 8px;
         }
-        /* 按钮透明背景，只显示图标 */
         .controls button {
             background: transparent !important;
-            color: #2b6cb0;
-            border: none;
-            padding: 4px 8px;
+            color: #2d3748 !important;
+            border: 1px solid #bdd3e8;
+            padding: 4px 14px;
             border-radius: 20px;
-            font-size: 18px;
+            font-size: 14px;
             cursor: pointer;
             position: relative;
             z-index: 2;
             touch-action: manipulation;
-            min-width: 36px;
-            min-height: 36px;
-            display: flex;
+            min-height: 34px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s, background 0.2s;
+            transition: background 0.2s, transform 0.2s;
         }
         .controls button:hover {
-            transform: scale(1.15);
-            background: rgba(43, 108, 176, 0.1) !important;
+            background: rgba(0,0,0,0.04) !important;
+            transform: scale(1.02);
         }
         .controls button.active {
-            background: rgba(72, 187, 120, 0.2) !important;
-            color: #48bb78;
+            background: rgba(72, 187, 120, 0.15) !important;
+            color: #48bb78 !important;
+            border-color: #48bb78;
         }
         .controls button.record-btn {
-            color: #e53e3e;
+            color: #e53e3e !important;
+            border-color: #feb2b2;
         }
         .controls button.record-btn.recording {
-            color: #f6ad55;
+            color: #f6ad55 !important;
             animation: pulse 1s infinite;
         }
         .controls .loop-btn.active {
-            color: #e53e3e;
+            color: #e53e3e !important;
+            border-color: #e53e3e;
         }
         .controls .card-settings-btn {
-            color: #718096;
-            font-size: 18px;
+            color: #718096 !important;
+            border-color: #e2e8f0;
         }
         .controls .card-settings-btn:hover {
-            background: rgba(113, 128, 150, 0.15) !important;
+            background: rgba(0,0,0,0.04) !important;
         }
         @keyframes pulse {
             0% { opacity: 1; }
@@ -321,15 +316,18 @@
             flex-wrap: wrap;
         }
         .download-bar button {
-            background: #38a169;
-            padding: 6px 16px;
+            background: transparent !important;
+            color: #2d3748 !important;
+            border: 1px solid #bdd3e8;
+            padding: 6px 18px;
             font-size: 14px;
             border-radius: 30px;
-            border: none;
-            color: white;
             cursor: pointer;
+            transition: background 0.2s;
         }
-        .download-bar button:hover { background: #2f855a; }
+        .download-bar button:hover {
+            background: rgba(0,0,0,0.04) !important;
+        }
 
         .modal-overlay {
             display: none;
@@ -535,7 +533,7 @@
             body { padding: 12px; }
             .sentence-card { padding: 12px 14px; }
             .sentence-card .en { font-size: 16px; }
-            .controls button { font-size: 18px; padding: 4px 6px; min-width: 34px; min-height: 34px; }
+            .controls button { font-size: 13px; padding: 3px 10px; min-height: 30px; }
             .modal-card { padding: 16px 18px; }
             .upload-area { padding: 20px; }
             .header-bar h1 { font-size: 20px; }
@@ -547,10 +545,10 @@
     <div class="toast" id="toast"></div>
 
     <div class="header-bar">
-        <h1 style="margin:0;">📖 今天学习了吗</h1>
+        <h1 style="margin:0;">Theahuang_Learning English</h1>
         <div style="display:flex; gap:10px;">
-            <button class="bg-btn" id="globalBgBtn">🌐 设置背景</button>
-            <button class="vocab-btn" id="toggleVocabBtn">📖 生词本 (0)</button>
+            <button class="bg-btn" id="globalBgBtn">设置背景</button>
+            <button class="vocab-btn" id="toggleVocabBtn">生词本 (0)</button>
         </div>
     </div>
 
@@ -586,10 +584,10 @@
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:10px;">
             <h3 style="margin:0;">🔊 逐句跟读（点击卡片跳转视频）</h3>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="trans-toggle-btn" id="globalTransToggle" style="background:#ed8936; padding:6px 18px; font-size:14px; border-radius:30px; border:none; color:white; cursor:pointer;">📖 显示所有翻译</button>
-                <button class="en-toggle-btn" id="globalEnToggle" style="background:#3182ce; padding:6px 18px; font-size:14px; border-radius:30px; border:none; color:white; cursor:pointer;">🙈 隐藏所有英文</button>
-                <button id="downloadTxtBtn" style="background:#38a169; padding:6px 16px; font-size:14px; border:none; border-radius:30px; color:white; cursor:pointer;">⬇️ 下载对话</button>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;" class="download-bar">
+                <button id="globalTransToggle">显示所有翻译</button>
+                <button id="globalEnToggle">隐藏所有英文</button>
+                <button id="downloadTxtBtn">下载对话</button>
             </div>
         </div>
         <div id="sentencesContainer"></div>
@@ -633,7 +631,7 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn-crop-preview" id="cropPreviewBtn">✂️ 剪裁并预览</button>
+                    <button class="btn-crop-preview" id="cropPreviewBtn">剪裁并预览</button>
                 </div>
             </div>
             <div class="preview-box" id="cardBgPreview" style="background-image: none; background-color: #e2e8f0;"></div>
@@ -654,7 +652,7 @@
             <div class="phonetic" id="modalPhonetic">/ˈwɜːrd/</div>
             <div id="modalMeanings"></div>
             <div class="modal-actions">
-                <button class="add-vocab-btn" id="addVocabBtn">📚 加入生词本</button>
+                <button class="add-vocab-btn" id="addVocabBtn">加入生词本</button>
             </div>
         </div>
     </div>
@@ -675,7 +673,7 @@
     }
     function saveVocab(v) { localStorage.setItem('myVocab', JSON.stringify(v)); updateVocabBadge(); }
     function updateVocabBadge() {
-        document.getElementById('toggleVocabBtn').textContent = `📖 生词本 (${getVocab().length})`;
+        document.getElementById('toggleVocabBtn').textContent = `生词本 (${getVocab().length})`;
     }
     function renderVocab() {
         const list = document.getElementById('vocabList');
@@ -765,7 +763,7 @@
         const phoneticEl = document.getElementById('modalPhonetic');
         const meaningsEl = document.getElementById('modalMeanings');
         const addBtn = document.getElementById('addVocabBtn');
-        addBtn.textContent = '📚 加入生词本';
+        addBtn.textContent = '加入生词本';
         addBtn.classList.remove('added');
         meaningsEl.innerHTML = '';
         let phoneticText = '', meaningText = '', exampleText = '';
@@ -1420,11 +1418,11 @@
                     <div class="zh">📖 ${s.translation}</div>
                     <div class="controls">
                         <audio controls class="audio-player" src="${s.audio_url}" preload="none"></audio>
-                        <button class="loop-btn" data-idx="${idx}" title="循环跟读">🔁</button>
-                        <button class="trans-toggle" data-idx="${idx}" title="显示翻译">📖</button>
-                        <button class="en-toggle" data-idx="${idx}" title="隐藏英文">🙈</button>
-                        <button class="record-btn" data-idx="${idx}" title="录音">🎤</button>
-                        <button class="card-settings-btn" data-idx="${idx}" title="卡片设置">⚙️</button>
+                        <button class="loop-btn" data-idx="${idx}" title="循环跟读">循环</button>
+                        <button class="trans-toggle" data-idx="${idx}" title="显示翻译">翻译</button>
+                        <button class="en-toggle" data-idx="${idx}" title="隐藏英文">隐藏英文</button>
+                        <button class="record-btn" data-idx="${idx}" title="录音">录音</button>
+                        <button class="card-settings-btn" data-idx="${idx}" title="卡片设置">设置</button>
                     </div>
                     <div class="score-area" id="score-${idx}">
                         <div class="score">评分: <span id="score-value-${idx}">0%</span></div>
@@ -1467,7 +1465,7 @@
                 const newState = !transStates[idx];
                 transStates[idx] = newState;
                 zhDiv.style.display = newState ? 'block' : 'none';
-                this.textContent = newState ? '🙈' : '📖';
+                this.textContent = newState ? '隐藏翻译' : '翻译';
                 const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
                     const transSpan = fullLine.querySelector('.translation-text');
@@ -1483,7 +1481,7 @@
                 const newState = !enStates[idx];
                 enStates[idx] = newState;
                 enSpan.style.display = newState ? 'inline' : 'none';
-                this.textContent = newState ? '🙈' : '📖';
+                this.textContent = newState ? '显示英文' : '隐藏英文';
                 const fullLine = document.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
                     const enFull = fullLine.querySelector('.en-text');
@@ -1499,12 +1497,12 @@
                 e.stopPropagation();
                 isLooping = !isLooping;
                 if (isLooping) {
-                    this.textContent = '⏹';
+                    this.textContent = '停止循环';
                     this.classList.add('active');
                     audioEl.loop = true;
                     audioEl.play();
                 } else {
-                    this.textContent = '🔁';
+                    this.textContent = '循环';
                     this.classList.remove('active');
                     audioEl.loop = false;
                     audioEl.pause();
@@ -1535,7 +1533,7 @@
                 }
                 if (isRecording) {
                     recognition.stop();
-                    recordBtn.textContent = '🎤';
+                    recordBtn.textContent = '录音';
                     recordBtn.classList.remove('recording');
                     isRecording = false;
                     return;
@@ -1544,7 +1542,7 @@
                 try {
                     recognition.start();
                     isRecording = true;
-                    recordBtn.textContent = '⏹';
+                    recordBtn.textContent = '停止录音';
                     recordBtn.classList.add('recording');
                     showToast('录音中... 请大声朗读原文');
 
@@ -1568,12 +1566,12 @@
                         } else {
                             showToast('语音识别错误: ' + event.error);
                         }
-                        recordBtn.textContent = '🎤';
+                        recordBtn.textContent = '录音';
                         recordBtn.classList.remove('recording');
                         isRecording = false;
                     };
                     recognition.onend = function() {
-                        recordBtn.textContent = '🎤';
+                        recordBtn.textContent = '录音';
                         recordBtn.classList.remove('recording');
                         isRecording = false;
                         showToast('录音结束');
@@ -1614,7 +1612,7 @@
                 const zhDiv = card.querySelector('.zh');
                 const transBtn = card.querySelector('.trans-toggle');
                 if (zhDiv) zhDiv.style.display = newState ? 'block' : 'none';
-                if (transBtn) transBtn.textContent = newState ? '🙈' : '📖';
+                if (transBtn) transBtn.textContent = newState ? '隐藏翻译' : '翻译';
                 transStates[idx] = newState;
                 const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
@@ -1622,7 +1620,7 @@
                     if (transSpan) transSpan.style.display = newState ? 'inline' : 'none';
                 }
             });
-            this.textContent = newState ? '🙈 隐藏所有翻译' : '📖 显示所有翻译';
+            this.textContent = newState ? '隐藏所有翻译' : '显示所有翻译';
         };
 
         globalEnToggle.onclick = function(e) {
@@ -1632,7 +1630,7 @@
                 const enSpan = card.querySelector('.en-text');
                 const enBtn = card.querySelector('.en-toggle');
                 if (enSpan) enSpan.style.display = newState ? 'inline' : 'none';
-                if (enBtn) enBtn.textContent = newState ? '🙈' : '📖';
+                if (enBtn) enBtn.textContent = newState ? '显示英文' : '隐藏英文';
                 enStates[idx] = newState;
                 const fullLine = fullTextDiv.querySelector(`.dialogue-line[data-index="${idx}"]`);
                 if (fullLine) {
@@ -1640,7 +1638,7 @@
                     if (enFull) enFull.style.display = newState ? 'inline' : 'none';
                 }
             });
-            this.textContent = newState ? '🙈 隐藏所有英文' : '📖 显示所有英文';
+            this.textContent = newState ? '显示所有英文' : '隐藏所有英文';
         };
 
         setTimeout(restoreCardSettings, 100);
