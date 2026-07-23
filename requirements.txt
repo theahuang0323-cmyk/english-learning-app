@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydub
+assemblyai
+deep-translator
+python-multipart
+requests
+python-dotenv

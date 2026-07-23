@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+uploads/
+chunks/
+videos/
+*.mp3
+*.mp4
+*.db
+.vscode/
